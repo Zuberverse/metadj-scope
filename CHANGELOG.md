@@ -1,6 +1,6 @@
 # Changelog
 
-**Last Modified**: 2025-12-26 15:21 EST
+**Last Modified**: 2025-12-26 16:01 EST
 
 All notable changes to this project will be documented in this file.
 
@@ -11,12 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - ESLint flat config for Next.js linting
+- Cursor IDE rules (`.cursor/rules/cursor-rules.mdc`)
 
 ### Changed
 - Documented custom UI as scaffold-only for the hackathon workflow
 - `npm run test` now passes when no tests exist
 - CLAUDE/README updated to reflect current commands and setup
 - Environment variable renamed from `SCOPE_API_URL` to `NEXT_PUBLIC_SCOPE_API_URL` for client-side access
+- AGENTS.md synced with CLAUDE.md structure for platform parity
+
+### Validated
+- All 5 pipeline models downloaded on RunPod instance (longlive, krea-realtime-video, streamdiffusionv2, reward-forcing, passthrough)
+- No first-run download delays—can switch pipelines instantly
 
 ### Fixed
 - README now includes prerequisites and environment variables

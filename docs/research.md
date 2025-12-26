@@ -1,6 +1,6 @@
 # Research - MetaDJ Scope
 
-**Last Modified**: 2025-12-26 14:55 EST
+**Last Modified**: 2025-12-26 16:01 EST
 **Status**: Active Collection
 
 ## Purpose
@@ -171,6 +171,19 @@ See `docs/scope-technical.md` for a general capability overview. This section ca
 4. Validate VACE with MetaDJ avatar reference image
 
 ### Pipeline-Specific Findings (Dec 26)
+
+#### All Models Downloaded ✅
+All 5 pipeline models have been downloaded on the `metadj-scope` RunPod instance and are ready for immediate use:
+
+| Pipeline ID | Status | Description |
+|-------------|--------|-------------|
+| `longlive` | ✅ Downloaded | Stylized output with VACE support |
+| `krea-realtime-video` | ✅ Downloaded | Photorealistic (no VACE) |
+| `streamdiffusionv2` | ✅ Downloaded | General-purpose |
+| `reward-forcing` | ✅ Downloaded | Experimental alignment |
+| `passthrough` | ✅ Ready | No model needed |
+
+**Benefit**: No first-run download delays—switch between pipelines instantly.
 
 #### `longlive` Pipeline
 - **Output**: Stylized/artistic generation

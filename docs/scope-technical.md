@@ -1,6 +1,6 @@
 # Scope Technical Overview
 
-**Last Modified**: 2025-12-26 14:30 EST
+**Last Modified**: 2025-12-26 16:01 EST
 **Status**: Active
 
 ## Purpose
@@ -197,6 +197,17 @@ Scope supports multiple prompts with individual weights:
 ---
 
 ## Model Downloads
+
+### Current Status (Dec 26, 2025)
+**All 5 pipeline models have been downloaded** on the `metadj-scope` RunPod instance and are ready for use:
+
+| Pipeline ID | Status | Notes |
+|-------------|--------|-------|
+| `longlive` | ✅ Downloaded | Primary for MetaDJ avatar |
+| `krea-realtime-video` | ✅ Downloaded | Photorealistic, no VACE |
+| `streamdiffusionv2` | ✅ Downloaded | General-purpose |
+| `reward-forcing` | ✅ Downloaded | Experimental |
+| `passthrough` | ✅ Ready | No model required |
 
 ### First-Run Behavior
 Each pipeline downloads required models on first use:
