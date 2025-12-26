@@ -1,6 +1,6 @@
 # Strategy - MetaDJ Scope
 
-**Last Modified**: 2025-12-26 13:45 EST
+**Last Modified**: 2025-12-26 14:50 EST
 **Status**: Active
 
 ## Purpose
@@ -102,6 +102,40 @@ Decision criteria: demo reliability and setup speed
 - Integration with MetaDJ Studio performance engine
 - OBS/streaming overlay controls
 - Multi-scene management for live shows
+
+### Decision 5: Pipeline Selection (Decided Dec 26)
+**Decision**: Use `longlive` pipeline with VACE enabled for hackathon demo.
+
+**Rationale**:
+For the MetaDJ avatar demo, **identity consistency is paramount**. After validating multiple pipelines:
+
+| Pipeline | Output | VACE | Trade-off |
+|----------|--------|------|-----------|
+| `longlive` | Stylized/Artistic | ✅ Yes | Identity lock, less realistic |
+| `krea-realtime-video` | Photorealistic | ❌ No | Beautiful output, no identity consistency |
+
+**Why `longlive` + VACE wins**:
+- VACE locks MetaDJ avatar identity via reference images
+- Consistent recognizable character across runtime
+- ~20GB VRAM (fits RTX 5090 with headroom)
+- Stylized output aligns with MetaDJ aesthetic
+
+**Why NOT `krea-realtime-video`**:
+- **No VACE support** - Cannot lock identity; output varies by prompt alone
+- Higher VRAM requirement (32GB for Wan2.1-T2V-1.3B model)
+- Photorealism less important than brand consistency for this demo
+
+**Configuration** (see `docs/architecture.md` for full config):
+```yaml
+pipeline: longlive
+vace:
+  enabled: true
+  scale: 0.7
+  reference_images: [metadj-avatar-v7.0.png]
+prompt: "MetaDJ avatar, cyberpunk DJ, neon purple and cyan lighting"
+```
+
+**Validated Dec 26**: Both pipelines tested on RTX 5090 RunPod instance. VACE confirmed working on `longlive`, confirmed NOT available on `krea-realtime-video`.
 
 ## MVP Definition
 - Webcam input drives pose (ingest path TBD)

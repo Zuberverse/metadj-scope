@@ -1,6 +1,6 @@
 {
   "name": "metadj-scope",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MetaDJ Scope - Daydream Scope hackathon project for AI avatar generation",
   "author": "Zuberant",
   "license": "UNLICENSED",
@@ -12,7 +12,7 @@
     "start": "next start -H 0.0.0.0 -p ${PORT:-2000}",
     "lint": "eslint --max-warnings=0 .",
     "type-check": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "test:watch": "vitest watch"
   },
   "dependencies": {

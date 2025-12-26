@@ -4,7 +4,7 @@
 
 **Platform Notice**: This `CLAUDE.md` is optimized for Claude Code sessions. OpenAI Codex (via the Codex CLI) follows the accompanying `AGENTS.md`, and Cursor IDE uses `.cursor/rules/` guidance when present; each platform gets the same standards.
 
-**Last Modified**: 2025-12-26 12:45 EST
+**Last Modified**: 2025-12-26 14:41 EST
 *Parent: /3-projects/5-software/CLAUDE.md*
 
 ## Repository Organization
@@ -16,7 +16,8 @@
 ## Project Context
 - Hackathon project for the Daydream Scope Track (interactive AI video).
 - Goal: identify a focused Scope-based demo and implement an MVP for the program timeline.
-- Stack and architecture are not selected yet; decisions live in `docs/strategy.md` and `docs/architecture.md`.
+- Current approach: use the native Scope UI for the hackathon demo; custom UI/UX is deferred.
+- Stack scaffolded: Next.js 16 + TypeScript + Tailwind 4 (inactive until post-hackathon).
 
 ## Visual System Alignment
 - Follow `1-system/1-context/1-knowledge/9-visual-assets/visual-identity-context-standards.md` for UI work.
@@ -35,8 +36,13 @@
 - Update README and CHANGELOG for meaningful milestones.
 
 ## Workflow and Commands
-- Commands are TBD until the stack is selected.
-- Once defined, add `dev`, `build`, `start`, `lint`, `type-check`, `test`, and `format` scripts.
+- `npm run dev` - Start development server (port 2000)
+- `npm run dev:turbo` - Start dev server with Turbopack
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
+- `npm run type-check` - TypeScript type check
+- `npm run test` - Run Vitest (passes with no tests until a suite exists)
 
 ## Automatic Documentation
 - Update `docs/scope.md` when new program guidance arrives.

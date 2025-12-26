@@ -1,6 +1,6 @@
 # Research - MetaDJ Scope
 
-**Last Modified**: 2025-12-26 16:15 EST
+**Last Modified**: 2025-12-26 14:55 EST
 **Status**: Active Collection
 
 ## Purpose
@@ -63,12 +63,28 @@ See `docs/scope-technical.md` for a general capability overview. This section ca
 - **Critical for MetaDJ Avatar direction**
 - See: https://github.com/daydreamlive/scope/blob/main/docs/api/vace.md
 
-**VACE Questions to Answer:**
-- [ ] How are reference images provided? (URL, base64, file path?)
-- [ ] What's the latency impact of VACE?
-- [ ] How consistent is character preservation?
-- [ ] Can multiple reference images be used?
-- [ ] Does VACE work with all models or specific ones?
+**VACE Questions - Validated Dec 26:**
+- [x] How are reference images provided? → **Upload via UI "Reference Images" section**
+- [ ] What's the latency impact of VACE? → TBD (needs measurement)
+- [x] How consistent is character preservation? → **Works well with proper reference images**
+- [x] Can multiple reference images be used? → **Yes, UI supports multiple**
+- [x] Does VACE work with all models or specific ones? → **Pipeline-dependent! See below**
+
+### Pipeline VACE Compatibility (Validated Dec 26)
+
+**Critical Discovery**: VACE is NOT available on all pipelines!
+
+| Pipeline | VACE Support | Validated |
+|----------|-------------|-----------|
+| `longlive` | ✅ **Yes** | Dec 26 |
+| `krea-realtime-video` | ❌ **No** | Dec 26 |
+| `streamdiffusionv2` | ❓ TBD | - |
+| `reward-forcing` | ❓ TBD | - |
+| `passthrough` | N/A | - |
+
+**Evidence**: When switching to `krea-realtime-video`, the VACE toggle and Reference Images section disappear from the Settings panel. This is by design—the Wan2.1-T2V-1.3B model used by krea-realtime-video does not support VACE embeddings.
+
+**Implication for MetaDJ**: Must use `longlive` pipeline if identity consistency via VACE is required.
 
 ---
 
@@ -154,6 +170,30 @@ See `docs/scope-technical.md` for a general capability overview. This section ca
 3. Test first stream creation
 4. Validate VACE with MetaDJ avatar reference image
 
+### Pipeline-Specific Findings (Dec 26)
+
+#### `longlive` Pipeline
+- **Output**: Stylized/artistic generation
+- **VACE**: Fully supported
+- **VRAM**: ~20GB (confirmed on RTX 5090)
+- **Model Download**: ~10GB on first use
+- **Best for**: Identity-consistent character generation
+- **Trade-off**: More stylized than photorealistic
+
+#### `krea-realtime-video` Pipeline
+- **Output**: Photorealistic, natural-looking
+- **VACE**: NOT supported (controls hidden in UI)
+- **VRAM**: 32GB (uses Wan-AI/Wan2.1-T2V-1.3B)
+- **Model Download**: ~15GB on first use, takes 3-7 minutes
+- **Model Initialization**: Additional 1-3 minutes to load into VRAM after download
+- **Best for**: Realistic portraits where identity consistency is not needed
+- **Trade-off**: Beautiful realistic output, but no identity lock
+
+#### `passthrough` Pipeline
+- **Output**: None (passes video through unchanged)
+- **Best for**: Testing camera setup before running generation
+- **Use case**: Debug webcam input before switching to generation pipelines
+
 ### Performance Observations
 *To be documented after testing*
 
@@ -162,7 +202,7 @@ See `docs/scope-technical.md` for a general capability overview. This section ca
 | Warm-up time | 15-25s | TBD |
 | Inference latency | ~100ms/frame | TBD |
 | VACE latency | N/A | TBD |
-| Memory usage | - | TBD |
+| Memory usage | - | 20GB (longlive), 32GB (krea) |
 
 ### Integration Discoveries
 *To be documented*

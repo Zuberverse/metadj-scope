@@ -9,7 +9,7 @@ export class ScopeClient {
   private baseUrl: string;
 
   constructor(baseUrl?: string) {
-    this.baseUrl = baseUrl || process.env.SCOPE_API_URL || "http://localhost:8000";
+    this.baseUrl = baseUrl || process.env.NEXT_PUBLIC_SCOPE_API_URL || "http://localhost:8000";
     // Remove trailing slash if present
     this.baseUrl = this.baseUrl.replace(/\/$/, "");
   }

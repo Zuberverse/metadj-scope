@@ -18,7 +18,7 @@ export default function Home() {
           </div>
           <ConnectionStatus
             isConnected={isConnected}
-            apiUrl={process.env.SCOPE_API_URL || "Not configured"}
+            apiUrl={process.env.NEXT_PUBLIC_SCOPE_API_URL || "Not configured"}
           />
         </div>
       </header>

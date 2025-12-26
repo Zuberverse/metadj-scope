@@ -1,6 +1,6 @@
 # MetaDJ Scope
 
-**Last Modified**: 2025-12-26 13:45 EST
+**Last Modified**: 2025-12-26 15:21 EST
 
 Hackathon exploration project for the Daydream Scope Track (Interactive AI Video Program). Building a Scope-generated MetaDJ avatar from webcam input for a real-time streaming demo.
 
@@ -15,7 +15,7 @@ Hackathon exploration project for the Daydream Scope Track (Interactive AI Video
 
 **For hackathon**: Use native Scope platform UI directly at the RunPod instance. The Scope UI already provides webcam input, VACE controls, prompt editing, and output display—no need to build custom UI for the demo.
 
-**For future**: Next.js 16 project is scaffolded and ready for custom UI development when integrating with MetaDJ Studio or building branded experiences.
+**For future**: Next.js 16 project is scaffold-only; custom UI/UX is deferred until after the hackathon.
 
 **Access Scope UI**: https://gbc63llq1zdxki-8000.proxy.runpod.net
 
@@ -46,7 +46,26 @@ This project connects to the broader MetaDJ ecosystem:
 
 > **Note**: Stop the pod when not in use to conserve credits. Restart from the RunPod console when needed.
 
+## Pipeline Selection (Quick Reference)
+
+**For MetaDJ avatar demo, use `longlive` + VACE** (identity consistency > photorealism).
+
+| Pipeline | Best For | VACE | VRAM |
+|----------|----------|------|------|
+| **`longlive`** ⭐ | Identity-consistent avatars | ✅ Yes | ~20GB |
+| `krea-realtime-video` | Photorealistic portraits | ❌ No | 32GB |
+| `streamdiffusionv2` | General-purpose | TBD | ~20GB |
+| `passthrough` | Debug webcam | N/A | Minimal |
+
+**Key Trade-off**: `longlive` produces stylized output but locks MetaDJ identity via VACE. `krea-realtime-video` is photorealistic but has no identity consistency.
+
+See `docs/scope-technical.md` for complete pipeline documentation.
+
 ## Quick Start
+
+### Prerequisites
+- Node.js 20.19+
+- npm
 
 ### Using Scope (Hackathon Workflow)
 
@@ -74,6 +93,7 @@ npm run type-check
 ```
 
 Local dev server: http://localhost:2000
+Note: UI scaffolding only; stream controls are not wired to the Scope API yet.
 
 ## Commands
 | Command | Description |
@@ -91,6 +111,15 @@ Local dev server: http://localhost:2000
 - **Current**: Native Scope UI for hackathon
 - **Future**: Custom UI components in `src/components/`
 - **API Client**: `src/lib/scope/` - typed Scope API client (for future integration)
+
+## Environment Variables
+See `.env.example` for the full list and comments.
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `HF_TOKEN` | RunPod only | HuggingFace token for TURN server when deploying Scope on RunPod |
+| `NEXT_PUBLIC_SCOPE_API_URL` | Local UI only | Scope API server base URL for the scaffolded UI |
+| `LIVEPEER_API_KEY` | Optional | Future Livepeer integration |
 
 ## Documentation
 
@@ -113,7 +142,8 @@ Local dev server: http://localhost:2000
 1. **UI Approach**: Native Scope UI for hackathon; custom UI deferred (Dec 26)
 2. **Deployment**: RunPod with RTX 5090
 3. **Stack**: Next.js 16 + Tailwind 4 (matches MetaDJ Nexus)
-4. **Future**: Masking/segmentation and background environments
+4. **Pipeline**: `longlive` + VACE for identity consistency (Dec 26)
+5. **Future**: Masking/segmentation and background environments
 
 ## Resources
 
