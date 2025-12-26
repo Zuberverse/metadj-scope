@@ -1,6 +1,19 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
+
+@theme {
+  /* Scope-inspired dark theme */
+  --color-scope-bg: #0a0a0a;
+  --color-scope-surface: #1a1a1a;
+  --color-scope-border: #2a2a2a;
+  --color-scope-accent: #7c3aed;
+  --color-scope-success: #22c55e;
+  --color-scope-warning: #eab308;
+  --color-scope-error: #ef4444;
+
+  /* Background and foreground */
+  --color-background: #0a0a0a;
+  --color-foreground: #ededed;
+}
 
 :root {
   --background: #0a0a0a;

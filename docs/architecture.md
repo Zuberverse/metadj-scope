@@ -1,42 +1,72 @@
 # Architecture - MetaDJ Scope
 
-**Last Modified**: 2025-12-26 12:37 EST
-**Status**: Draft
+**Last Modified**: 2025-12-26 13:45 EST
+**Status**: Active
 
 ## Purpose
-Document the MVP architecture for the Scope-generated MetaDJ avatar demo.
+Document the architecture for the Scope-generated MetaDJ avatar demo.
+
+## UI Approach Decision
+
+**Hackathon (Current)**: Use native Scope platform UI directly. The Scope UI provides all necessary controls—webcam input, VACE configuration, prompt editing, and output display.
+
+**Future**: Custom Next.js UI for branded MetaDJ experience and integration with MetaDJ Studio/Nexus.
 
 ## Overview
 Scope is the avatar renderer. Webcam input provides motion/pose guidance. VACE locks identity. The output is a live video stream suitable for demo and streaming.
 
-## System Flow (MVP)
+## System Flow (Hackathon MVP)
 ```
-[Webcam] -> [Scope Stream (StreamDiffusion + VACE + ControlNet)] -> [Live Output]
-                       |                         |
-                       |                         -> [Demo Viewer / OBS]
-                       -> [Prompt + Params UI]
+[Browser Webcam] -> [Scope UI @ RunPod] -> [Live Output]
+                          |
+                          +-- VACE (MetaDJ reference)
+                          +-- Prompt controls
+                          +-- StreamDiffusion pipeline
+```
+
+## System Flow (Future Custom UI)
+```
+[Webcam] -> [Next.js UI] -> [Scope API] -> [Live Output]
+               |                |
+               +-- Controls     +-- StreamDiffusion + VACE
+               +-- Presets      +-- ControlNet (optional)
+               +-- Status       |
+                               -> [OBS/Streaming]
 ```
 
 ## Core Components
 
-### 1. Input Capture
-- Webcam feed (local device or browser capture).
-- Format: whatever Scope ingest supports (API or desktop app).
+### Current (Hackathon)
+1. **Scope Platform UI** (native)
+   - Built-in webcam capture
+   - VACE reference upload and configuration
+   - Prompt editing and style controls
+   - Real-time output preview
 
-### 2. Scope Stream
-- **Model**: TBD (candidate models listed in `docs/scope-technical.md`).
-- **VACE**: MetaDJ reference images for identity consistency.
-- **ControlNet**: OpenPose if supported. Optional depth/edges if latency allows.
-- **Dynamic Params**: subject to Scope API; start with prompt, guidance, delta, ControlNet scales if supported.
+2. **RunPod Instance**
+   - RTX 5090 GPU (32GB VRAM)
+   - StreamDiffusion pipeline
+   - VACE model loaded
 
-### 3. Control UI (Minimal)
-- Prompt intensity slider or preset selector.
-- Start/stop stream.
-- Status indicator (warming, live, error).
+### Future (Custom UI)
+1. **Input Capture**
+   - Browser webcam via Next.js app
+   - WebRTC streaming to Scope API
 
-### 4. Output
-- Live video output from Scope.
-- Display in a simple viewer or route to OBS.
+2. **Scope API Client**
+   - Typed client in `src/lib/scope/`
+   - Stream management
+   - Parameter updates
+
+3. **Control UI**
+   - MetaDJ-branded interface
+   - Prompt presets for different styles
+   - VACE scale control
+   - Stream status indicators
+
+4. **Output Display**
+   - Embedded Scope output
+   - OBS integration for streaming
 
 ## Data Inputs
 - MetaDJ reference images (VACE).

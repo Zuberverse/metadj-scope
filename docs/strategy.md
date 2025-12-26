@@ -1,7 +1,7 @@
 # Strategy - MetaDJ Scope
 
-**Last Modified**: 2025-12-26 12:37 EST
-**Status**: Draft
+**Last Modified**: 2025-12-26 13:45 EST
+**Status**: Active
 
 ## Purpose
 Define the goals, constraints, and decision points for the Daydream Scope hackathon project.
@@ -82,6 +82,26 @@ Decision criteria: demo reliability and setup speed
 - Masking/segmentation for clean overlay
 - Background environment layers
 - TouchDesigner or Spout pipeline for performance compositing
+
+### Decision 4: UI/UX Approach (Decided Dec 26)
+**Decision**: Use native Scope platform UI for hackathon; defer custom UI to future.
+
+**Rationale**:
+- Scope's built-in UI already provides webcam input, VACE controls, prompt editing, and output display
+- Building custom UI is overhead that doesn't improve the demo's impact
+- Hackathon timeline favors focusing on the creative output (avatar quality) over infrastructure
+- Custom UI can be developed later for MetaDJ Studio/Nexus integration
+
+**Current State**:
+- Next.js 16 project scaffolded and ready (matches MetaDJ Nexus stack)
+- Components exist for future custom UI development
+- Focus for hackathon: use Scope UI at RunPod instance directly
+
+**Future Considerations**:
+- Custom UI for branded MetaDJ experience
+- Integration with MetaDJ Studio performance engine
+- OBS/streaming overlay controls
+- Multi-scene management for live shows
 
 ## MVP Definition
 - Webcam input drives pose (ingest path TBD)

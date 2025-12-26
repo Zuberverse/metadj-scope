@@ -1,28 +1,43 @@
 {
   "name": "metadj-scope",
   "version": "0.1.0",
+  "description": "MetaDJ Scope - Daydream Scope hackathon project for AI avatar generation",
+  "author": "Zuberant",
+  "license": "UNLICENSED",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 2000",
+    "dev": "next dev -H 0.0.0.0 -p ${PORT:-2000}",
+    "dev:turbo": "next dev --turbopack -H 0.0.0.0 -p ${PORT:-2000}",
     "build": "next build",
-    "start": "next start -p 2000",
-    "lint": "next lint",
-    "type-check": "tsc --noEmit"
+    "start": "next start -H 0.0.0.0 -p ${PORT:-2000}",
+    "lint": "eslint --max-warnings=0 .",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest watch"
   },
   "dependencies": {
-    "next": "^15.1.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.559.0",
+    "next": "^16.1.1",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {
-    "@types/node": "^22.10.2",
-    "@types/react": "^19.0.2",
-    "@types/react-dom": "^19.0.2",
-    "autoprefixer": "^10.4.20",
-    "eslint": "^9.17.0",
-    "eslint-config-next": "^15.1.0",
+    "@tailwindcss/postcss": "^4.1.17",
+    "@types/node": "^24.10.2",
+    "@types/react": "^19.2.4",
+    "@types/react-dom": "^19.2.3",
+    "@typescript-eslint/eslint-plugin": "^8.46.3",
+    "@typescript-eslint/parser": "^8.46.3",
+    "eslint": "^9.39.1",
+    "eslint-config-next": "^16.0.8",
     "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.17",
-    "typescript": "^5.7.2"
+    "tailwindcss": "^4.1.17",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.10"
+  },
+  "engines": {
+    "node": ">=20.19.0"
   }
 }
