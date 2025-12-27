@@ -1,6 +1,6 @@
 # Research - MetaDJ Scope
 
-**Last Modified**: 2025-12-26 16:01 EST
+**Last Modified**: 2025-12-27 19:00 EST
 **Status**: Active Collection
 
 ## Purpose
@@ -218,11 +218,66 @@ All 5 pipeline models have been downloaded on the `metadj-scope` RunPod instance
 | Memory usage | - | 20GB (longlive), 32GB (krea) |
 
 ### Integration Discoveries
-*To be documented*
 
-- [ ] Spout output setup (optional future overlay/compositing)
-- [ ] External tool connectivity (future)
+#### TouchDesigner Integration (Dec 27)
+
+**Critical Discovery**: Spout requires **Windows** - not available on RunPod (Linux).
+
+| Integration Path | Platform | Latency | Notes |
+|------------------|----------|---------|-------|
+| Spout | Windows only | Near-zero | GPU memory sharing |
+| NDI | Cross-platform | Low (LAN) | Network video protocol |
+| WebRTC | Cross-platform | Variable | Browser-based |
+
+**TouchDesigner Key Points:**
+- **Operator Families**: TOPs (textures), CHOPs (channels), SOPs (3D), DATs (data), MATs (materials), COMPs (components), POPs (points)
+- **Spout Operators**: Syphon Spout In TOP, Syphon Spout Out TOP
+- **GPU Requirement**: NVIDIA or AMD required for Spout (Intel not supported)
+- **Default Limit**: 10 Spout senders per computer
+- **AI/ML Options**: Script TOP (NumPy/OpenCV), NVIDIA Background TOP (segmentation)
+
+**Scope Spout Config:**
+- **Receiver**: Input Mode = Video, Video Source = Spout Receiver, Sender Name = [app name]
+- **Sender**: Toggle Spout Sender ON, default name = "ScopeOut"
+
+**Implication for MetaDJ Scope Hackathon:**
+- RunPod deployment cannot use Spout directly
+- TouchDesigner integration requires separate Windows machine
+- Current approach: WebRTC to browser is correct for hackathon
+- Future: Local Windows Scope + TouchDesigner for post-production workflows
+
+- [x] Spout output setup (documented in touchdesigner-reference.md)
+- [x] External tool connectivity (TouchDesigner, Unity, Blender documented)
 - [ ] Desktop app vs API differences
+
+---
+
+### Strategic Architecture Insights (Dec 27)
+
+**How Daydream Positions Scope:**
+- Primary: "Interactive tool with UI" (the main product)
+- Secondary: "API to programmatically control Scope" (advanced use case)
+- Not pitched as: "Build your AI video app on Scope as a backend"
+
+**The Stack (Bottom to Top):**
+1. **RunPod** - Just hardware (GPU hosting, container runtime, network proxy)
+2. **Underlying Models** - StreamDiffusion V2, LongLive, Krea Realtime, etc.
+3. **Scope Application** - Pipeline management, WebRTC server, UI, asset management
+4. **Scope API** - REST + WebRTC endpoints (what custom apps talk to)
+5. **Your App/Browser** - Either native Scope UI or custom frontend
+
+**Key Clarifications:**
+- Scope API ≠ StreamDiffusion API (Scope wraps it)
+- Scope API ≠ RunPod API (RunPod just hosts)
+- The API is "remote control" - not extension/plugin development
+- Same backend whether using Scope UI or custom app
+
+**Custom App Opportunity:**
+- Your app → API calls → Your RunPod GPU → AI output
+- Users interact with YOUR interface while YOUR rented GPU does AI work
+- Challenges: Authentication (none by default), cost model, scaling, uptime
+
+**Full details in:** `docs/future-integration-strategy.md`
 
 ---
 
@@ -298,13 +353,28 @@ All 5 pipeline models have been downloaded on the `metadj-scope` RunPod instance
 ---
 
 ## External Resources Reviewed
-- [ ] Scope GitHub README
-- [ ] Scope introduction docs
-- [ ] Scope API server docs
-- [ ] VACE documentation
+- [x] Scope GitHub README (Dec 27)
+- [x] Scope introduction docs (Dec 27)
+- [x] Scope API server docs (Dec 27)
+- [x] VACE documentation (Dec 27)
 - [x] RunPod quickstart (Dec 26 - full deployment steps documented above)
+- [x] RunPod documentation deep dive (Dec 27 - Pods, GPUs, storage, networking, pricing, SDK, CLI)
+- [x] TouchDesigner documentation (Dec 27 - operators, families, glossary, modes)
+- [x] TouchDesigner Spout operators (Dec 27 - Syphon Spout In/Out TOPs)
+- [x] TouchDesigner AI/ML TOPs (Dec 27 - Script TOP, NVIDIA Background TOP)
+- [x] Spout framework (Dec 27 - GPU texture sharing, compatibility)
+- [x] NDI documentation (Dec 27 - network video protocol)
+- [x] Scope Spout integration docs (Dec 27 - Windows requirement, sender/receiver config)
 - [ ] FAQ document
 - [x] MetaDJ Nexus Daydream docs (internal reference)
+
+**Comprehensive documentation now available in:**
+- `docs/scope-platform-reference.md` - Complete Scope platform documentation
+- `docs/api-reference.md` - Full Scope API endpoint reference
+- `docs/workflows-reference.md` - WebRTC, VACE, LoRA, Spout workflows
+- `docs/runpod-reference.md` - Complete RunPod platform reference (Pods, GPUs, storage, networking, pricing, SDK, CLI)
+- `docs/touchdesigner-reference.md` - TouchDesigner operators, Spout integration, AI/ML workflows
+- `docs/future-integration-strategy.md` - Post-hackathon strategy (custom apps, architecture layers, cost analysis)
 
 ---
 

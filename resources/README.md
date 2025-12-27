@@ -1,6 +1,6 @@
 # Resources - MetaDJ Scope
 
-**Last Modified**: 2025-12-26 12:45 EST
+**Last Modified**: 2025-12-27 13:11 EST
 
 Project resources for the Daydream Scope hackathon.
 
@@ -14,13 +14,13 @@ resources/
 ```
 
 ## Workflows
-- TBD - Will contain demo preparation, testing, and deployment workflows
+- Planned: demo prep, testing, and deployment workflows (add when confirmed)
 
 ## Templates
-- TBD - Will contain API client templates, config files, prompt templates
+- Planned: API client templates, config files, prompt templates (add when finalized)
 
 ## Guides
-- TBD - Will contain Scope API guides, integration notes, troubleshooting
+- Planned: Scope API guides, integration notes, troubleshooting (add after integration lock)
 
 ## Notes
 - Add resources as the project direction solidifies

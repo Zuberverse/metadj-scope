@@ -1,6 +1,6 @@
 # Scope Technical Overview
 
-**Last Modified**: 2025-12-26 16:01 EST
+**Last Modified**: 2025-12-27 21:00 EST
 **Status**: Active
 
 ## Purpose
@@ -92,13 +92,39 @@ When using a VACE-enabled pipeline:
 
 1. **Reference Images**: Upload one or more reference images in the "Reference Images" section
 2. **VACE Toggle**: Enable VACE in the Settings panel (ON/OFF)
-3. **Scale Control**: Adjust VACE strength (higher = more identity consistency, lower = more prompt influence)
+3. **Scale Control**: Adjust VACE strength (range 0.0-2.0, default 1.0)
+
+### VACE Scale Guide (Validated Dec 27)
+
+| Scale | Effect | Use Case |
+|-------|--------|----------|
+| **0.0** | No reference influence | Pure text-to-video generation |
+| **0.5** | Subtle influence | Creative freedom with light identity hints |
+| **1.0** | Default balanced | Standard identity conditioning |
+| **1.5** | Strong identity lock | Character-consistent avatars |
+| **2.0** | Maximum identity lock | Strongest reference enforcement |
+
+### Optimal MetaDJ Avatar Settings (Validated Dec 27)
+
+**Recommended configuration for MetaDJ avatar transformation:**
+
+| Setting | Value | Rationale |
+|---------|-------|-----------|
+| **Pipeline** | `longlive` | Only pipeline with VACE support |
+| **VACE** | ON | Required for identity consistency |
+| **VACE Scale** | **1.5-2.0** | Higher values enforce stronger identity lock |
+| **Input Mode** | Video (Camera) | For real-time webcam input |
+| **Resolution** | 320x576 | Default, good performance/quality balance |
+| **Prompt** | MetaDJ-specific descriptors | Reinforce identity (see prompt section) |
+
+**Key Finding**: Scale 1.0 (default) produces weak identity transfer. For strong avatar consistency, use **Scale 1.5-2.0**. At Scale 2.0, the reference image's key visual elements (goggles, visor, aesthetic) come through consistently across frames.
 
 ### VACE Best Practices
 - Use high-quality, well-lit reference images
 - Multiple angles help with consistency
 - Front-facing images work best for avatar work
-- Keep scale moderate (0.5-0.8) to balance identity with prompt creativity
+- **Use Scale 1.5-2.0 for identity-critical work** (updated from previous guidance)
+- For maximum identity lock, use Scale 2.0 with identity-reinforcing prompts
 
 ---
 
@@ -181,7 +207,8 @@ Scope supports multiple prompts with individual weights:
 - NVIDIA RTX 4090 or equivalent
 
 ### Recommended
-- **RTX 5090** (32GB VRAM) - Required for krea-realtime-video
+- **RTX Pro 6000** (96GB VRAM) - Maximum headroom for all pipelines
+- **RTX 5090** (32GB VRAM) - Minimum for krea-realtime-video
 - High-speed internet for RunPod streaming
 - Modern browser with WebRTC support
 
@@ -248,6 +275,12 @@ After download, models load into VRAM. This can take 1-3 minutes depending on mo
 
 ## References
 
+### Internal Documentation (Canonical)
+- `docs/scope-platform-reference.md` - Complete platform documentation
+- `docs/api-reference.md` - Full API reference with code examples
+- `docs/workflows-reference.md` - WebRTC, VACE, LoRA, Spout workflows
+
+### External Resources
 - **Scope GitHub**: https://github.com/daydreamlive/scope/
 - **Scope Docs**: https://docs.daydream.live/scope/introduction
 - **Scope API Server Docs**: https://github.com/daydreamlive/scope/blob/main/docs/server.md
