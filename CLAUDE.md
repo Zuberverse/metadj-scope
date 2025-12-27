@@ -4,7 +4,7 @@
 
 **Platform Notice**: This `CLAUDE.md` is optimized for Claude Code sessions. OpenAI Codex (via the Codex CLI) follows the accompanying `AGENTS.md`, and Cursor IDE uses `.cursor/rules/` guidance when present; each platform gets the same standards.
 
-**Last Modified**: 2025-12-26 14:41 EST
+**Last Modified**: 2025-12-26 20:24 EST
 *Parent: /3-projects/5-software/CLAUDE.md*
 
 ## Repository Organization
@@ -23,6 +23,23 @@
 - Follow `1-system/1-context/1-knowledge/9-visual-assets/visual-identity-context-standards.md` for UI work.
 - Use OKLCH-based colors and typography standards when a UI is built.
 - Reference MetaDJ Nexus tokens as canonical implementation guidance.
+
+## Relevant Agents
+- software (architecture and code quality)
+- coder (implementation and fixes)
+- ai (AI/ML strategy and integration)
+- product (requirements and UX)
+- operations (deployment and reliability)
+
+## Relevant Skills
+- software-development-coordinator
+- api-designer
+- ai-integration-auditor
+- documentation-generator
+- test-generator
+- accessibility-validator
+- visual-identity-validator
+- performance-optimizer
 
 ## Development Standards
 ### Code Patterns
@@ -43,6 +60,18 @@
 - `npm run lint` - Run ESLint
 - `npm run type-check` - TypeScript type check
 - `npm run test` - Run Vitest (passes with no tests until a suite exists)
+
+## Coordination Patterns
+- Discovery and scoping: product + software, with documentation-generator support.
+- Prototype build: coder + ai, with software oversight.
+- Review and QA: performance-optimizer + accessibility-validator.
+- Release readiness: operations + software.
+
+## Quality Gates
+- `docs/scope.md` and `docs/strategy.md` updated before implementation begins.
+- `docs/architecture.md` updated before any major build changes.
+- README and CHANGELOG updated for meaningful milestones.
+- Security review for any external API, auth, or data storage.
 
 ## Automatic Documentation
 - Update `docs/scope.md` when new program guidance arrives.

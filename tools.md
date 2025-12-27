@@ -1,6 +1,6 @@
 # Tools - MetaDJ Scope
 
-**Last Modified**: 2025-12-26 14:41 EST
+**Last Modified**: 2025-12-26 17:45 EST
 **Status**: Draft
 
 ## Purpose
@@ -17,10 +17,41 @@ Track tools, services, and integrations for the Daydream Scope hackathon project
 - **Status**: Primary platform for hackathon
 
 ### RunPod (Cloud GPU)
-- **Type**: Cloud GPU compute
+- **Type**: Cloud GPU compute (On-Demand Pod)
 - **Quickstart**: https://docs.daydream.live/scope/getting-started/quickstart#cloud-deployment-runpod
-- **Notes**: Browser-accessible Scope instance (port 8000); credits available on request
-- **Status**: Available for cloud deployment
+- **Console**: https://console.runpod.io/pods?id=gbc63llq1zdxki
+- **Status**: Active deployment (`metadj-scope` pod)
+
+#### Active Instance
+| Property | Value |
+|----------|-------|
+| Pod Name | `metadj-scope` |
+| Pod ID | `gbc63llq1zdxki` |
+| GPU | RTX 5090 (32GB VRAM) |
+| Scope UI | https://gbc63llq1zdxki-8000.proxy.runpod.net |
+| Cost | **$0.89/hr** (On-Demand) |
+
+#### Cost Management (Critical)
+
+**Pricing Model**: This is an **On-Demand Pod**, not Serverless. You pay per hour while the pod is running, regardless of whether you're actively using it.
+
+**Cost if left running idle:**
+| Duration | Cost |
+|----------|------|
+| 1 hour | $0.89 |
+| 1 day | ~$21 |
+| 1 week | ~$150 |
+| Full hackathon (17 days) | ~$360 |
+
+**Development Session Workflow:**
+1. **Start** pod from [RunPod Console](https://console.runpod.io/pods?id=gbc63llq1zdxki)
+2. Wait ~2-3 min for startup (models already downloaded)
+3. Open [Scope UI](https://gbc63llq1zdxki-8000.proxy.runpod.net) and work
+4. **Stop** pod when done to save credits
+
+**Why not Serverless?** Serverless would allow "always available" without idle costs, but requires packaging Scope as a serverless handler—too complex for hackathon timeline. Start/stop workflow has minimal friction (~2-3 min startup).
+
+**Models Status**: All 5 pipeline models are pre-downloaded on this instance. No additional download wait on restart.
 
 ## Scope-Related Integrations
 

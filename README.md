@@ -1,6 +1,6 @@
 # MetaDJ Scope
 
-**Last Modified**: 2025-12-26 15:21 EST
+**Last Modified**: 2025-12-26 18:36 EST
 
 Hackathon exploration project for the Daydream Scope Track (Interactive AI Video Program). Building a Scope-generated MetaDJ avatar from webcam input for a real-time streaming demo.
 
@@ -29,7 +29,7 @@ Hackathon exploration project for the Daydream Scope Track (Interactive AI Video
 This project connects to the broader MetaDJ ecosystem:
 - **MetaDJ Studio**: Virtual stage performance engine—Scope could power real-time visuals
 - **MetaDJ Dream**: AI-driven creative tool—same StreamDiffusion foundation
-- **MetaDJ Avatar**: VACE enables character-consistent generation for the MetaDJ persona
+- **MetaDJ Avatar**: VACE enables character-consistent generation for the MetaDJ avatar
 
 **Technical Advantage**: Z has production experience with StreamDiffusion via MetaDJ Nexus Dream feature. Proven ControlNet configurations, timing patterns, and prompt engineering transfer directly to Scope.
 
