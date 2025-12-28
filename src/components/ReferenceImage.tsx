@@ -65,15 +65,18 @@ export function ReferenceImage({ src, onImageChange }: ReferenceImageProps) {
       {/* Controls */}
       <div className="flex gap-2">
         <button
+          type="button"
           onClick={() => fileInputRef.current?.click()}
+          aria-label="Upload new reference image"
           className="flex-1 py-2 bg-scope-surface border border-scope-border hover:bg-scope-border rounded text-sm font-medium transition-colors"
         >
           Upload New
         </button>
         <button
+          type="button"
           onClick={handleReset}
+          aria-label="Reset to default MetaDJ avatar"
           className="py-2 px-3 bg-scope-surface border border-scope-border hover:bg-scope-border rounded text-sm transition-colors"
-          title="Reset to default MetaDJ avatar"
         >
           ↺
         </button>
@@ -85,11 +88,12 @@ export function ReferenceImage({ src, onImageChange }: ReferenceImageProps) {
         type="file"
         accept="image/*"
         onChange={handleFileSelect}
+        aria-label="Select reference image file"
         className="hidden"
       />
 
       <p className="text-xs text-gray-500">
-        VACE uses this image to maintain character consistency
+        VACE requires a Scope server asset path; local uploads are preview-only until asset upload is wired.
       </p>
     </div>
   );

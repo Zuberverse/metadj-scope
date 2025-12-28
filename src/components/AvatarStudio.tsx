@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { getScopeClient } from "@/lib/scope";
-import { DEFAULT_AVATAR_CONFIG, DEFAULT_GENERATION_PARAMS } from "@/lib/scope/types";
+import { DEFAULT_AVATAR_CONFIG, DEFAULT_GENERATION_PARAMS, type IceCandidatePayload } from "@/lib/scope/types";
 import { WebcamPreview } from "./WebcamPreview";
 import { ReferenceImage } from "./ReferenceImage";
 import { PromptEditor } from "./PromptEditor";
@@ -19,6 +19,12 @@ export function AvatarStudio({ onConnectionChange }: AvatarStudioProps) {
   const [vaceScale, setVaceScale] = useState(DEFAULT_AVATAR_CONFIG.vaceScale);
   const [isStreaming, setIsStreaming] = useState(false);
   const [referenceImage, setReferenceImage] = useState<string>("/metadj-avatar-reference.png");
+  const [outputStream, setOutputStream] = useState<MediaStream | null>(null);
+  const outputStreamRef = useRef<MediaStream | null>(null);
+  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
+  const dataChannelRef = useRef<RTCDataChannel | null>(null);
+  const sessionIdRef = useRef<string | null>(null);
+  const pendingCandidatesRef = useRef<IceCandidatePayload[]>([]);
 
   // Check API connection on mount
   useEffect(() => {
@@ -45,22 +51,166 @@ export function AvatarStudio({ onConnectionChange }: AvatarStudioProps) {
     checkConnection();
   }, [onConnectionChange]);
 
+  const cleanupConnection = useCallback(() => {
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.onicecandidate = null;
+      peerConnectionRef.current.ontrack = null;
+      peerConnectionRef.current.onconnectionstatechange = null;
+      peerConnectionRef.current.close();
+      peerConnectionRef.current = null;
+    }
+
+    if (outputStreamRef.current) {
+      outputStreamRef.current.getTracks().forEach((track) => track.stop());
+      outputStreamRef.current = null;
+    }
+
+    dataChannelRef.current = null;
+    sessionIdRef.current = null;
+    pendingCandidatesRef.current = [];
+    setOutputStream(null);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      cleanupConnection();
+    };
+  }, [cleanupConnection]);
+
+  const buildInitialParameters = useCallback(() => {
+    const parameters: Record<string, unknown> = {
+      prompts: [{ text: prompt, weight: 1.0 }],
+      denoising_step_list: [1000, 750, 500, 250],
+      manage_cache: true,
+    };
+
+    const hasServerAsset =
+      referenceImage.startsWith("/assets/") || referenceImage.startsWith("assets/");
+
+    if (hasServerAsset) {
+      parameters.vace_ref_images = [referenceImage];
+      parameters.vace_context_scale = vaceScale;
+    }
+
+    return parameters;
+  }, [prompt, referenceImage, vaceScale]);
+
   const handleStartStream = useCallback(async () => {
     setIsStreaming(true);
-    // TODO: Implement stream creation with Scope API
-    console.log("[AvatarStudio] Starting stream with:", {
-      prompt,
-      vaceScale,
-      referenceImage,
-      params: DEFAULT_GENERATION_PARAMS,
-    });
-  }, [prompt, vaceScale, referenceImage]);
+    setError(null);
+
+    try {
+      const client = getScopeClient();
+
+      const pipelineLoaded = await client.loadPipeline("longlive");
+      if (!pipelineLoaded) {
+        throw new Error("Failed to load longlive pipeline");
+      }
+
+      let pipelineReady = false;
+      for (let attempt = 0; attempt < 30; attempt += 1) {
+        const status = await client.getPipelineStatus();
+        if (status?.status === "loaded") {
+          pipelineReady = true;
+          break;
+        }
+        if (status?.status === "error") {
+          throw new Error(status.error || "Pipeline failed to load");
+        }
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+
+      if (!pipelineReady) {
+        throw new Error("Pipeline load timed out");
+      }
+
+      const iceServers = await client.getIceServers();
+      if (!iceServers) {
+        throw new Error("Failed to fetch ICE servers");
+      }
+
+      const pc = new RTCPeerConnection({ iceServers: iceServers.iceServers });
+      peerConnectionRef.current = pc;
+
+      pc.addTransceiver("video");
+
+      pc.ontrack = (event) => {
+        if (event.streams && event.streams[0]) {
+          outputStreamRef.current = event.streams[0];
+          setOutputStream(event.streams[0]);
+        }
+      };
+
+      pc.onconnectionstatechange = () => {
+        if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
+          setError("WebRTC connection failed");
+          setIsStreaming(false);
+          cleanupConnection();
+        }
+      };
+
+      pc.onicecandidate = async (event) => {
+        if (!event.candidate) return;
+
+        const payload = {
+          candidate: event.candidate.candidate,
+          sdpMid: event.candidate.sdpMid,
+          sdpMLineIndex: event.candidate.sdpMLineIndex,
+        };
+
+        if (sessionIdRef.current) {
+          await client.addIceCandidates(sessionIdRef.current, [payload]);
+        } else {
+          pendingCandidatesRef.current.push(payload);
+        }
+      };
+
+      dataChannelRef.current = pc.createDataChannel("parameters", { ordered: true });
+      dataChannelRef.current.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          if (message.type === "stream_stopped") {
+            setError(message.error_message || "Scope stream stopped");
+            setIsStreaming(false);
+            cleanupConnection();
+          }
+        } catch (parseError) {
+          console.warn("[AvatarStudio] Unhandled data channel message:", parseError);
+        }
+      };
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      const response = await client.createWebRtcOffer({
+        sdp: offer.sdp || "",
+        type: offer.type,
+        initialParameters: buildInitialParameters(),
+      });
+
+      if (!response) {
+        throw new Error("Failed to establish WebRTC session");
+      }
+
+      sessionIdRef.current = response.sessionId;
+      await pc.setRemoteDescription({ type: response.type, sdp: response.sdp });
+
+      if (pendingCandidatesRef.current.length > 0) {
+        await client.addIceCandidates(sessionIdRef.current, pendingCandidatesRef.current);
+        pendingCandidatesRef.current = [];
+      }
+    } catch (err) {
+      console.error("[AvatarStudio] Stream start failed:", err);
+      setError(err instanceof Error ? err.message : "Failed to start stream");
+      setIsStreaming(false);
+      cleanupConnection();
+    }
+  }, [buildInitialParameters, cleanupConnection]);
 
   const handleStopStream = useCallback(() => {
     setIsStreaming(false);
-    // TODO: Implement stream cleanup
-    console.log("[AvatarStudio] Stopping stream");
-  }, []);
+    cleanupConnection();
+  }, [cleanupConnection]);
 
   if (isLoading) {
     return (
@@ -97,14 +247,14 @@ export function AvatarStudio({ onConnectionChange }: AvatarStudioProps) {
             <input
               type="range"
               min="0"
-              max="1"
-              step="0.05"
+              max="2"
+              step="0.1"
               value={vaceScale}
               onChange={(e) => setVaceScale(parseFloat(e.target.value))}
               className="w-full"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Higher = stronger identity preservation
+              Higher = stronger identity preservation (recommended: 1.5-2.0)
             </p>
           </div>
         </div>
@@ -120,7 +270,7 @@ export function AvatarStudio({ onConnectionChange }: AvatarStudioProps) {
           </div>
         )}
 
-        <OutputPreview isStreaming={isStreaming} />
+        <OutputPreview isStreaming={isStreaming} stream={outputStream} />
 
         {/* Stream Controls */}
         <div className="mt-4 flex gap-2">

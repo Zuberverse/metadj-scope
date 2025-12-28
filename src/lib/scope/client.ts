@@ -3,15 +3,48 @@
  * Handles communication with the Daydream Scope API server
  */
 
-import type { HealthResponse, StreamConfig, StreamStatus } from "./types";
+import type {
+  HealthResponse,
+  IceCandidatePayload,
+  IceServersResponse,
+  PipelineSchemasResponse,
+  PipelineStatusResponse,
+  WebRtcOfferRequest,
+  WebRtcOfferResponse,
+} from "./types";
 
 export class ScopeClient {
   private baseUrl: string;
+  private defaultTimeout: number;
 
-  constructor(baseUrl?: string) {
+  constructor(baseUrl?: string, timeout = 30000) {
     this.baseUrl = baseUrl || process.env.NEXT_PUBLIC_SCOPE_API_URL || "http://localhost:8000";
     // Remove trailing slash if present
     this.baseUrl = this.baseUrl.replace(/\/$/, "");
+    this.defaultTimeout = timeout;
+  }
+
+  /**
+   * Create a fetch request with timeout support
+   */
+  private async fetchWithTimeout(
+    url: string,
+    options: RequestInit = {},
+    timeout?: number
+  ): Promise<Response> {
+    const controller = new AbortController();
+    const timeoutMs = timeout ?? this.defaultTimeout;
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+      return response;
+    } finally {
+      clearTimeout(timeoutId);
+    }
   }
 
   /**
@@ -19,10 +52,14 @@ export class ScopeClient {
    */
   async checkHealth(): Promise<HealthResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/health`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
+      const response = await this.fetchWithTimeout(
+        `${this.baseUrl}/health`,
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        },
+        10000 // Health checks use a shorter timeout
+      );
 
       if (!response.ok) {
         return { status: "error" };
@@ -42,11 +79,11 @@ export class ScopeClient {
   }
 
   /**
-   * Get available pipelines
+   * Get available pipelines (schema keys)
    */
   async getPipelines(): Promise<string[]> {
     try {
-      const response = await fetch(`${this.baseUrl}/pipelines`, {
+      const response = await this.fetchWithTimeout(`${this.baseUrl}/api/v1/pipelines/schemas`, {
         method: "GET",
         headers: { "Content-Type": "application/json" },
       });
@@ -55,7 +92,18 @@ export class ScopeClient {
         throw new Error(`Failed to get pipelines: ${response.status}`);
       }
 
-      return response.json();
+      const data: PipelineSchemasResponse | Record<string, unknown> | string[] = await response.json();
+
+      if (Array.isArray(data)) {
+        return data.filter((item): item is string => typeof item === "string");
+      }
+
+      const schemas =
+        typeof data === "object" && data && "schemas" in data && typeof data.schemas === "object"
+          ? (data.schemas as Record<string, unknown>)
+          : (data as Record<string, unknown>);
+
+      return Object.keys(schemas || {});
     } catch (error) {
       console.error("[Scope] Failed to get pipelines:", error);
       return [];
@@ -63,79 +111,105 @@ export class ScopeClient {
   }
 
   /**
-   * Create a new stream for real-time generation
+   * Load a pipeline on the server
    */
-  async createStream(config: StreamConfig): Promise<{ streamId: string; whipUrl: string } | null> {
+  async loadPipeline(pipelineId: string): Promise<boolean> {
     try {
-      const response = await fetch(`${this.baseUrl}/v1/streams`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(config),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to create stream: ${response.status}`);
-      }
-
-      return response.json();
-    } catch (error) {
-      console.error("[Scope] Failed to create stream:", error);
-      return null;
-    }
-  }
-
-  /**
-   * Get stream status
-   */
-  async getStreamStatus(streamId: string): Promise<StreamStatus | null> {
-    try {
-      const response = await fetch(`${this.baseUrl}/v1/streams/${streamId}/status`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to get stream status: ${response.status}`);
-      }
-
-      return response.json();
-    } catch (error) {
-      console.error("[Scope] Failed to get stream status:", error);
-      return null;
-    }
-  }
-
-  /**
-   * Update stream parameters (live parameter updates)
-   */
-  async updateStream(streamId: string, updates: Partial<StreamConfig>): Promise<boolean> {
-    try {
-      const response = await fetch(`${this.baseUrl}/v1/streams/${streamId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates),
-      });
+      const response = await this.fetchWithTimeout(
+        `${this.baseUrl}/api/v1/pipeline/load`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pipeline_id: pipelineId }),
+        },
+        60000 // Pipeline loading can take longer on cold starts
+      );
 
       return response.ok;
     } catch (error) {
-      console.error("[Scope] Failed to update stream:", error);
+      console.error("[Scope] Failed to load pipeline:", error);
       return false;
     }
   }
 
   /**
-   * Stop and delete a stream
+   * Get pipeline status
    */
-  async deleteStream(streamId: string): Promise<boolean> {
+  async getPipelineStatus(): Promise<PipelineStatusResponse | null> {
     try {
-      const response = await fetch(`${this.baseUrl}/v1/streams?id=${streamId}`, {
-        method: "DELETE",
+      const response = await this.fetchWithTimeout(`${this.baseUrl}/api/v1/pipeline/status`, {
+        method: "GET",
         headers: { "Content-Type": "application/json" },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to get pipeline status: ${response.status}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error("[Scope] Failed to get pipeline status:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Get ICE server configuration for WebRTC
+   */
+  async getIceServers(): Promise<IceServersResponse | null> {
+    try {
+      const response = await this.fetchWithTimeout(`${this.baseUrl}/api/v1/webrtc/ice-servers`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to get ICE servers: ${response.status}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error("[Scope] Failed to get ICE servers:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Create a WebRTC offer session
+   */
+  async createWebRtcOffer(payload: WebRtcOfferRequest): Promise<WebRtcOfferResponse | null> {
+    try {
+      const response = await this.fetchWithTimeout(`${this.baseUrl}/api/v1/webrtc/offer`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to create WebRTC offer: ${response.status}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error("[Scope] Failed to create WebRTC offer:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Add ICE candidates to an existing WebRTC session
+   */
+  async addIceCandidates(sessionId: string, candidates: IceCandidatePayload[]): Promise<boolean> {
+    try {
+      const response = await this.fetchWithTimeout(`${this.baseUrl}/api/v1/webrtc/offer/${sessionId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ candidates }),
       });
 
       return response.ok;
     } catch (error) {
-      console.error("[Scope] Failed to delete stream:", error);
+      console.error("[Scope] Failed to add ICE candidates:", error);
       return false;
     }
   }

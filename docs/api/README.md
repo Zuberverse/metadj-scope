@@ -1,12 +1,13 @@
 # API Notes
 
-**Last Modified**: 2025-12-27 13:11 EST
+**Last Modified**: 2025-12-28 10:54 EST
 
 Central index for Scope API integration notes.
 
 ## Current State
-- Hackathon flow uses the native Scope UI; no custom API wiring is active.
-- When endpoints are confirmed, capture auth, base URLs, and request/response examples here.
+- Hackathon flow uses the native Scope UI.
+- Scaffolded UI now uses the Scope WebRTC offer flow (`/api/v1/webrtc/*`) for prompt-only streaming.
+- Reference image upload and webcam ingest are still pending for the custom UI.
 
 ## References
 - `../scope-technical.md`

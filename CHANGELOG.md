@@ -1,6 +1,6 @@
 # Changelog
 
-**Last Modified**: 2025-12-26 16:01 EST
+**Last Modified**: 2025-12-28 11:07 EST
 
 All notable changes to this project will be documented in this file.
 
@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - ESLint flat config for Next.js linting
 - Cursor IDE rules (`.cursor/rules/cursor-rules.mdc`)
+- Request timeouts to Scope API client (10s health, 30s default, 60s pipeline load)
+- ARIA labels and accessibility attributes to UI components
+- `aria-pressed` state for toggle buttons in PromptEditor
+- `aria-live` regions for dynamic content updates
 
 ### Changed
 - Documented custom UI as scaffold-only for the hackathon workflow
@@ -19,6 +23,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLAUDE/README updated to reflect current commands and setup
 - Environment variable renamed from `SCOPE_API_URL` to `NEXT_PUBLIC_SCOPE_API_URL` for client-side access
 - AGENTS.md synced with CLAUDE.md structure for platform parity
+- Scope API client aligned to `/api/v1` endpoints and WebRTC offer flow
+- Scaffolded UI now establishes a WebRTC session (prompt-only; VACE ref images require Scope assets)
+- Default VACE scale updated to 1.5 (slider range 0.0-2.0) and UI stats now reflect scaffold defaults
+- Default generation resolution updated to 320x576 to match longlive defaults
+- RunPod instance details updated to RTX Pro 6000 pod
+- Added `check:scope` script for API connectivity checks
+- PromptEditor handler wrapped in `useCallback` for performance optimization
+- Consolidated duplicate questions section in `docs/research.md`
 
 ### Validated
 - All 5 pipeline models downloaded on RunPod instance (longlive, krea-realtime-video, streamdiffusionv2, reward-forcing, passthrough)
@@ -27,6 +39,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - README now includes prerequisites and environment variables
 - ESLint config now uses named export to satisfy `import/no-anonymous-default-export` rule
+- TypeScript type errors: `WebRtcOfferResponse.type` now uses `RTCSdpType`
+- TypeScript type errors: `IceCandidatePayload.candidate` now accepts `undefined`
+- Added explicit `type="button"` to all button elements
+
+### Removed
+- Unused `lucide-react` dependency (no imports found in source)
 
 ## [0.2.0] - 2025-12-26
 

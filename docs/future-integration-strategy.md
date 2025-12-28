@@ -1,6 +1,6 @@
 # Future Integration Strategy
 
-**Last Modified**: 2025-12-27 19:00 EST
+**Last Modified**: 2025-12-28 10:54 EST
 **Status**: Strategic Reference (Post-Hackathon Consideration)
 
 ## Purpose
@@ -254,7 +254,7 @@ Right now, anyone with your RunPod URL can use your GPU.
 ```
 Your Next.js App (metadj-scope)
          │
-         ├── Environment variable: SCOPE_API_URL
+         ├── Environment variable: NEXT_PUBLIC_SCOPE_API_URL
          │   (points to your RunPod instance)
          │
          ├── Your UI components
@@ -264,11 +264,15 @@ Your Next.js App (metadj-scope)
              (talks to Scope via WebRTC)
 ```
 
-The `metadj-scope` scaffold already exists. Would need to:
-1. Connect to RunPod URL via environment variable
-2. Implement WebRTC client (see `api-reference.md` for code examples)
-3. Build UI components for controls
-4. Display the video stream
+The `metadj-scope` scaffold already exists and now includes:
+1. Scope API client with WebRTC offer flow
+2. Basic UI controls (prompt + start/stop)
+3. Output display via WebRTC stream
+
+Remaining for a full custom UI:
+1. Reference image upload to Scope assets
+2. Webcam ingest via WebRTC (if needed for VACE video input)
+3. Expanded controls (pipeline selection, presets, status)
 
 ---
 

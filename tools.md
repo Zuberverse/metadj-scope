@@ -1,6 +1,6 @@
 # Tools - MetaDJ Scope
 
-**Last Modified**: 2025-12-26 17:45 EST
+**Last Modified**: 2025-12-28 09:35 EST
 **Status**: Draft
 
 ## Purpose
@@ -19,17 +19,17 @@ Track tools, services, and integrations for the Daydream Scope hackathon project
 ### RunPod (Cloud GPU)
 - **Type**: Cloud GPU compute (On-Demand Pod)
 - **Quickstart**: https://docs.daydream.live/scope/getting-started/quickstart#cloud-deployment-runpod
-- **Console**: https://console.runpod.io/pods?id=gbc63llq1zdxki
+- **Console**: https://console.runpod.io/pods?id=t68d6nv3pi7uia
 - **Status**: Active deployment (`metadj-scope` pod)
 
 #### Active Instance
 | Property | Value |
 |----------|-------|
 | Pod Name | `metadj-scope` |
-| Pod ID | `gbc63llq1zdxki` |
-| GPU | RTX 5090 (32GB VRAM) |
-| Scope UI | https://gbc63llq1zdxki-8000.proxy.runpod.net |
-| Cost | **$0.89/hr** (On-Demand) |
+| Pod ID | `t68d6nv3pi7uia` |
+| GPU | RTX Pro 6000 (96GB VRAM) |
+| Scope UI | https://t68d6nv3pi7uia-8000.proxy.runpod.net |
+| Cost | **$1.84/hr** (On-Demand) |
 
 #### Cost Management (Critical)
 
@@ -38,15 +38,15 @@ Track tools, services, and integrations for the Daydream Scope hackathon project
 **Cost if left running idle:**
 | Duration | Cost |
 |----------|------|
-| 1 hour | $0.89 |
-| 1 day | ~$21 |
-| 1 week | ~$150 |
-| Full hackathon (17 days) | ~$360 |
+| 1 hour | $1.84 |
+| 1 day | ~$44 |
+| 1 week | ~$309 |
+| Full hackathon (17 days) | ~$751 |
 
 **Development Session Workflow:**
-1. **Start** pod from [RunPod Console](https://console.runpod.io/pods?id=gbc63llq1zdxki)
+1. **Start** pod from [RunPod Console](https://console.runpod.io/pods?id=t68d6nv3pi7uia)
 2. Wait ~2-3 min for startup (models already downloaded)
-3. Open [Scope UI](https://gbc63llq1zdxki-8000.proxy.runpod.net) and work
+3. Open [Scope UI](https://t68d6nv3pi7uia-8000.proxy.runpod.net) and work
 4. **Stop** pod when done to save credits
 
 **Why not Serverless?** Serverless would allow "always available" without idle costs, but requires packaging Scope as a serverless handler—too complex for hackathon timeline. Start/stop workflow has minimal friction (~2-3 min startup).

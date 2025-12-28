@@ -1,6 +1,6 @@
 # Strategy - MetaDJ Scope
 
-**Last Modified**: 2025-12-27 21:30 EST
+**Last Modified**: 2025-12-28 09:35 EST
 **Status**: Active
 
 ## Purpose
@@ -130,7 +130,7 @@ For the MetaDJ avatar demo, **identity consistency is paramount**. After validat
 pipeline: longlive
 vace:
   enabled: true
-  scale: 0.7
+  scale: 1.5
   reference_images: [metadj-avatar-v7.0.png]
 prompt: "MetaDJ avatar, cyberpunk DJ, neon purple and cyan lighting"
 ```

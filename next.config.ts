@@ -3,11 +3,6 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   // Enable React strict mode for better development experience
   reactStrictMode: true,
-
-  // Expose environment variables to the browser
-  env: {
-    SCOPE_API_URL: process.env.SCOPE_API_URL,
-  },
 };
 
 export default nextConfig;

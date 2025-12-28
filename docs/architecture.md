@@ -1,6 +1,6 @@
 # Architecture - MetaDJ Scope
 
-**Last Modified**: 2025-12-27 21:30 EST
+**Last Modified**: 2025-12-28 10:54 EST
 **Status**: Active
 
 ## Purpose
@@ -76,7 +76,7 @@ video_source: Camera
 
 vace:
   enabled: true
-  scale: 0.7  # Balanced identity vs prompt
+  scale: 1.5  # Strong identity lock (VACE scale 0.0-2.0)
   reference_images:
     - metadj-avatar-v7.0.png
 
@@ -87,8 +87,8 @@ prompt:
   transition_steps: 4
 
 settings:
-  height: 512
-  width: 512
+  height: 576
+  width: 320
   seed: 42  # For reproducibility
   manage_cache: true
 ```
@@ -136,6 +136,7 @@ settings:
    - Typed client in `src/lib/scope/`
    - Pipeline selection and configuration
    - VACE parameter management
+   - WebRTC offer + ICE candidate handling (`/api/v1/webrtc/*`)
    - Stream lifecycle control
 
 3. **Control UI**
@@ -174,7 +175,7 @@ settings:
 ## Outputs
 
 - **Live video stream**: Real-time avatar generation
-- **Resolution**: 512x512 default (configurable)
+- **Resolution**: 320x576 default (configurable)
 - **Frame rate**: ~8-15 FPS depending on pipeline
 - **Format**: WebRTC stream via Scope UI
 

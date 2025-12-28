@@ -1,6 +1,6 @@
 # Research - MetaDJ Scope
 
-**Last Modified**: 2025-12-27 21:30 EST
+**Last Modified**: 2025-12-28 09:35 EST
 **Status**: Active Collection
 
 ## Purpose
@@ -45,18 +45,28 @@ See `docs/nexus-daydream-reference.md` for:
 
 See `docs/scope-technical.md` for a general capability overview. This section captures findings and validation notes.
 
-### API Endpoints (From Hackathon Docs)
-*To be validated against actual Scope API*
+### API Endpoints (Validated Dec 28)
+*Source: official Scope server docs (`docs/server.md`).*
 
-| Endpoint | Method | Purpose | Nexus Equivalent |
-|----------|--------|---------|------------------|
-| `/v1/streams` | POST | Create stream | Same |
-| `/v1/streams/:id` | GET | Stream config | Same |
-| `/v1/streams/:id/status` | GET | Stream status | Same |
-| `/v1/streams/:id` | PATCH | Update params | Same |
-| `/v1/streams?id=:id` | DELETE | Tear down | Same |
-| WHIP ingest | POST | WebRTC ingest | Same |
+| Endpoint | Method | Purpose | Notes |
+|----------|--------|---------|-------|
+| `/health` | GET | Health check | - |
 | `/docs` | GET | Swagger UI | - |
+| `/api/v1/hardware/info` | GET | Hardware info | - |
+| `/api/v1/pipeline/load` | POST | Load pipeline | - |
+| `/api/v1/pipeline/status` | GET | Pipeline status | - |
+| `/api/v1/pipelines/schemas` | GET | Pipeline schemas | - |
+| `/api/v1/models/status` | GET | Model download status | - |
+| `/api/v1/models/download` | POST | Download models | - |
+| `/api/v1/webrtc/ice-servers` | GET | ICE server config | - |
+| `/api/v1/webrtc/offer` | POST | WebRTC offer | - |
+| `/api/v1/webrtc/offer/{session_id}` | PATCH | Trickle ICE | - |
+| `/api/v1/assets` | GET/POST | Asset list/upload | - |
+| `/api/v1/assets/{path}` | GET | Asset file | - |
+| `/api/v1/lora/list` | GET | LoRA list | - |
+
+### Unverified Hackathon Endpoints
+The hackathon notes referenced `/v1/streams` endpoints, but these do not appear in the official `server.md`. Treat them as unverified/legacy until confirmed on a live server.
 
 ### VACE Capabilities (Key Differentiator)
 - Reference image support for style/character consistency
@@ -323,31 +333,24 @@ All 5 pipeline models have been downloaded on the `metadj-scope` RunPod instance
 
 ---
 
-## Questions to Explore
+## Open Questions
 
-### API & Compatibility
-- [x] Does Scope use same StreamDiffusion params as Daydream? → Likely yes (same foundation)
+*Note: Many original questions have been answered through research. See validated sections above for answered items.*
+
+### Remaining API Questions
 - [ ] Is the API structure identical to Daydream hosted API?
-- [ ] Does WHIP work the same way?
-- [ ] What's in the Swagger UI (`/docs`)?
+- [ ] Does WHIP work the same way as Nexus?
 
-### VACE (Critical for Avatar Direction)
-- [ ] How to provide reference images?
-- [ ] Latency impact?
-- [ ] Consistency quality?
-- [ ] MetaDJ avatar reference test results?
+### Performance (To Measure)
+- [ ] RunPod warm-up time for each pipeline?
+- [ ] Real-time viability for live demo?
+- [ ] VACE latency impact on frame rate?
 
-### Performance
-- [ ] RunPod warm-up time?
-- [ ] Generation quality at 512×512?
-- [ ] Real-time viability for demo?
+### Future Integration
+- [ ] Simplest web UI integration path (validated approach: use Scope UI for hackathon)?
+- [ ] Can we reuse Nexus patterns for custom WebRTC client?
 
-### Integration
-- [ ] Simplest web UI integration path?
-- [ ] Spout output complexity (future, optional)?
-- [ ] Can we reuse Nexus patterns?
-
-### Masking / Segmentation (Future Overlay)
+### Masking / Segmentation (Post-Hackathon)
 - [ ] Does Scope expose segmentation or alpha output?
 - [ ] Is SAM3 available as a pipeline module?
 - [ ] If mask is possible, what format is returned?

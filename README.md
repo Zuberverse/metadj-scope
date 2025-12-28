@@ -1,6 +1,6 @@
 # MetaDJ Scope
 
-**Last Modified**: 2025-12-27 21:00 EST
+**Last Modified**: 2025-12-28 10:57 EST
 
 Hackathon exploration project for the Daydream Scope Track (Interactive AI Video Program). Building a Scope-generated MetaDJ avatar from webcam input for a real-time streaming demo.
 
@@ -19,7 +19,7 @@ Hackathon exploration project for the Daydream Scope Track (Interactive AI Video
 
 **For hackathon**: Use native Scope platform UI directly at the RunPod instance. The Scope UI already provides webcam input, VACE controls, prompt editing, and output display—no need to build custom UI for the demo.
 
-**For future**: Next.js 16 project is scaffold-only; custom UI/UX is deferred until after the hackathon.
+**For future**: Next.js 16 project is still minimal; prompt-only WebRTC streaming is wired, but custom UI/UX is deferred until after the hackathon.
 
 **Access Scope UI**: https://t68d6nv3pi7uia-8000.proxy.runpod.net
 
@@ -93,7 +93,7 @@ npm run type-check
 ```
 
 Local dev server: http://localhost:2000  
-Note: UI scaffolding only; stream controls are not wired to the Scope API yet.
+Note: The scaffold now uses Scope's WebRTC offer flow. Set `NEXT_PUBLIC_SCOPE_API_URL` to your Scope server and start the `longlive` pipeline before clicking "Start Generation." Reference images only apply when the path is a Scope asset (e.g., `/assets/...`).
 
 ## Deployment
 
@@ -115,6 +115,7 @@ Note: UI scaffolding only; stream controls are not wired to the Scope API yet.
 | `npm run start` | Start production server |
 | `npm run lint` | Run ESLint |
 | `npm run type-check` | TypeScript type check |
+| `npm run check:scope` | Validate Scope API connectivity |
 | `npm run test` | Run tests |
 
 ## Testing
