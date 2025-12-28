@@ -4,8 +4,11 @@
 
 **Platform Notice**: This `AGENTS.md` is optimized for OpenAI Codex via the Codex CLI. Claude Code sessions follow the accompanying `CLAUDE.md`, and Cursor IDE uses `.cursor/rules/` guidance when present; each platform gets the same standards.
 
-**Last Modified**: 2025-12-26 20:24 EST
+**Last Modified**: 2025-12-27 14:56 EST
 *Parent: /3-projects/5-software/AGENTS.md*
+
+## User Context
+- Assume the user is Z unless explicitly stated otherwise—apply Z's voice, solo-founder learning-developer framing, and skip identity discovery questions.
 
 ## Repository Organization
 - Root stays minimal: `README.md`, `CHANGELOG.md`, `AGENTS.md`, `CLAUDE.md`, configs.

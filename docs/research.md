@@ -1,6 +1,6 @@
 # Research - MetaDJ Scope
 
-**Last Modified**: 2025-12-27 19:00 EST
+**Last Modified**: 2025-12-27 21:30 EST
 **Status**: Active Collection
 
 ## Purpose
@@ -149,17 +149,19 @@ See `docs/scope-technical.md` for a general capability overview. This section ca
 - [x] Instance deployed (Dec 26)
 - [ ] First stream creation test
 
-### Active RunPod Instance (Deployed Dec 26)
+### Active RunPod Instance (Updated Dec 27)
 
 | Property | Value |
 |----------|-------|
 | **Pod Name** | metadj-scope |
-| **Pod ID** | `gbc63llq1zdxki` |
-| **GPU** | RTX 5090 (32GB VRAM) |
-| **Cost** | $0.89/hr (On-Demand) |
+| **Pod ID** | `t68d6nv3pi7uia` |
+| **GPU** | RTX Pro 6000 (96GB VRAM) |
+| **Cost** | $1.84/hr (On-Demand) |
 | **Template** | Daydream Scope (daydreamlive/scope) |
-| **API URL** | `https://gbc63llq1zdxki-8000.proxy.runpod.net` |
-| **Console** | https://console.runpod.io/pods?id=gbc63llq1zdxki |
+| **Scope UI** | `https://t68d6nv3pi7uia-8000.proxy.runpod.net` |
+| **Console** | https://console.runpod.io/pods?id=t68d6nv3pi7uia |
+
+**Note**: Upgraded from RTX 5090 (32GB) on Dec 27 after encountering CUDA OOM errors when switching pipelines. The RTX Pro 6000 provides 96GB VRAM—massive headroom for all pipelines.
 
 **Environment Variables Configured:**
 - `HF_TOKEN` - HuggingFace read token for TURN server

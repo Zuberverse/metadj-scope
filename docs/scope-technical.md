@@ -1,6 +1,6 @@
 # Scope Technical Overview
 
-**Last Modified**: 2025-12-27 21:00 EST
+**Last Modified**: 2025-12-27 22:00 EST
 **Status**: Active
 
 ## Purpose
@@ -125,6 +125,68 @@ When using a VACE-enabled pipeline:
 - Front-facing images work best for avatar work
 - **Use Scale 1.5-2.0 for identity-critical work** (updated from previous guidance)
 - For maximum identity lock, use Scale 2.0 with identity-reinforcing prompts
+
+---
+
+## Resolution & Performance Guide (Validated Dec 27)
+
+Resolution is the **primary factor** affecting FPS. The GPU runs at 100% regardless—lower resolution means each frame computes faster.
+
+### Daydream Default Resolutions (Official)
+
+| Pipeline | Default (H×W) | Aspect |
+|----------|---------------|--------|
+| `longlive` | 576 × 320 | 9:16 Portrait |
+| `streamdiffusionv2` | 512 × 512 | 1:1 Square |
+| `krea-realtime-video` | 512 × 512 | 1:1 Square |
+
+*Source: Scope API documentation*
+
+### Resolution vs FPS (Our Observations)
+
+**Note**: FPS values below are from our testing on RTX Pro 6000 (96GB). Actual FPS varies significantly by GPU, pipeline, and settings. Daydream docs cite "~8 FPS (varies by hardware)" as a general baseline.
+
+| Resolution | Aspect | Pixels | Observed FPS* | Use Case |
+|------------|--------|--------|---------------|----------|
+| 320 × 576 | 9:16 (Portrait) | 184K | ~15-20 | **Daydream default** for longlive |
+| 512 × 512 | 1:1 (Square) | 262K | ~12-15 | Daydream default for krea/streamdiffusion |
+| **640 × 360** | 16:9 (Landscape) | 230K | **~10-15** | **Recommended for 16:9 demos** |
+| 512 × 288 | 16:9 (Landscape) | 147K | ~15-20 | Maximum FPS, smaller output |
+| 768 × 432 | 16:9 (Landscape) | 332K | ~8-12 | Higher quality, slower |
+| 1280 × 720 | 16:9 (Landscape) | 922K | ~4-5 | **Too slow for real-time** |
+
+*\*Observed on RTX Pro 6000 with longlive pipeline. Your results will vary.*
+
+### Key Insights
+
+1. **100% GPU ≠ fast FPS**: Full GPU utilization means it's compute-bound. Each frame takes X ms regardless of utilization percentage.
+
+2. **Pixel count matters most**: 1280×720 has 4× more pixels than 640×360, so it runs ~4× slower.
+
+3. **Aspect ratio flexibility**: Scope accepts any resolution. Match your output target:
+   - 16:9 for standard video/streaming
+   - 9:16 for mobile/TikTok-style
+   - 1:1 for social media squares
+
+4. **Quality vs Speed trade-off**: For hackathon demo, 640×360 at 10-15 FPS looks better than 1280×720 at 4 FPS (stuttery).
+
+### Recommended Settings by Use Case
+
+| Use Case | Resolution | Expected FPS |
+|----------|------------|--------------|
+| Real-time demo (16:9) | 640 × 360 | 10-15 |
+| Real-time demo (portrait) | 320 × 576 | 15-20 |
+| High-quality recording | 768 × 432 | 8-12 |
+| Maximum smoothness | 512 × 288 | 15-20 |
+
+### Other Performance Factors
+
+| Factor | Impact | Recommendation |
+|--------|--------|----------------|
+| **Denoising Steps** | High values (1000+) slow inference | Use pipeline defaults |
+| **Quantization** | `fp8` reduces precision for speed | Try if FPS is critical |
+| **VACE Scale** | Minimal FPS impact | Use 1.5-2.0 for identity |
+| **Manage Cache** | ON improves consistency | Keep ON |
 
 ---
 

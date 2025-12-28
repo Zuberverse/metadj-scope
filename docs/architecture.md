@@ -1,6 +1,6 @@
 # Architecture - MetaDJ Scope
 
-**Last Modified**: 2025-12-26 14:45 EST
+**Last Modified**: 2025-12-27 21:30 EST
 **Status**: Active
 
 ## Purpose
@@ -119,12 +119,12 @@ settings:
    - Multi-prompt editing with weights
    - Real-time output preview
 
-2. **RunPod Instance**
+2. **RunPod Instance** (Updated Dec 27)
    - Pod Name: `metadj-scope`
-   - Pod ID: `gbc63llq1zdxki`
-   - GPU: RTX 5090 (32GB VRAM)
-   - Scope UI: `https://gbc63llq1zdxki-8000.proxy.runpod.net`
-   - Cost: $0.89/hr (On-Demand)
+   - Pod ID: `t68d6nv3pi7uia`
+   - GPU: RTX Pro 6000 (96GB VRAM)
+   - Scope UI: `https://t68d6nv3pi7uia-8000.proxy.runpod.net`
+   - Cost: $1.84/hr (On-Demand)
 
 ### Future (Custom UI)
 
@@ -182,15 +182,15 @@ settings:
 
 ## Deployment Architecture
 
-### Active Configuration (Dec 26)
+### Active Configuration (Dec 27)
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        RunPod Cloud                          │
 │  ┌───────────────────────────────────────────────────────┐  │
-│  │  Pod: metadj-scope (gbc63llq1zdxki)                   │  │
+│  │  Pod: metadj-scope (t68d6nv3pi7uia)                   │  │
 │  │  ┌─────────────────────────────────────────────────┐  │  │
-│  │  │  GPU: RTX 5090 (32GB VRAM)                      │  │  │
+│  │  │  GPU: RTX Pro 6000 (96GB VRAM)                  │  │  │
 │  │  │  ┌─────────────────────────────────────────┐    │  │  │
 │  │  │  │  Scope Server                           │    │  │  │
 │  │  │  │  - longlive pipeline                    │    │  │  │
@@ -216,7 +216,7 @@ settings:
 
 | Target | Use Case | Status |
 |--------|----------|--------|
-| RunPod (RTX 5090) | Primary hackathon demo | Active |
+| RunPod (RTX Pro 6000) | Primary hackathon demo | Active |
 | Local GPU | Development/testing | Optional |
 | Custom cloud | Production (future) | Planned |
 
