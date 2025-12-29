@@ -7,6 +7,7 @@ import type {
   HealthResponse,
   IceCandidatePayload,
   IceServersResponse,
+  PipelineLoadParams,
   PipelineSchemasResponse,
   PipelineStatusResponse,
   WebRtcOfferRequest,
@@ -18,7 +19,9 @@ export class ScopeClient {
   private defaultTimeout: number;
 
   constructor(baseUrl?: string, timeout = 30000) {
-    this.baseUrl = baseUrl || process.env.NEXT_PUBLIC_SCOPE_API_URL || "http://localhost:8000";
+    // Use local API proxy to avoid CORS issues with RunPod
+    // Browser requests go through /api/scope/* which proxies to the actual Scope API
+    this.baseUrl = baseUrl || "/api/scope";
     // Remove trailing slash if present
     this.baseUrl = this.baseUrl.replace(/\/$/, "");
     this.defaultTimeout = timeout;
@@ -113,14 +116,19 @@ export class ScopeClient {
   /**
    * Load a pipeline on the server
    */
-  async loadPipeline(pipelineId: string): Promise<boolean> {
+  async loadPipeline(pipelineId: string, loadParams?: PipelineLoadParams): Promise<boolean> {
     try {
+      const body: Record<string, unknown> = { pipeline_id: pipelineId };
+      if (loadParams && Object.keys(loadParams).length > 0) {
+        body.load_params = loadParams;
+      }
+
       const response = await this.fetchWithTimeout(
         `${this.baseUrl}/api/v1/pipeline/load`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ pipeline_id: pipelineId }),
+          body: JSON.stringify(body),
         },
         60000 // Pipeline loading can take longer on cold starts
       );
@@ -151,6 +159,27 @@ export class ScopeClient {
       console.error("[Scope] Failed to get pipeline status:", error);
       return null;
     }
+  }
+
+  /**
+   * Wait for pipeline to reach loaded state
+   */
+  async waitForPipelineLoaded(
+    timeoutMs = 120000,
+    pollIntervalMs = 1000
+  ): Promise<boolean> {
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+      const status = await this.getPipelineStatus();
+      if (status?.status === "loaded") {
+        return true;
+      }
+      if (status?.status === "error") {
+        return false;
+      }
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+    }
+    return false;
   }
 
   /**

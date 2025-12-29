@@ -12,6 +12,17 @@ export interface PipelineConfig {
   height: number;
 }
 
+// Optional pipeline load parameters (Scope API)
+export interface PipelineLoadParams {
+  width?: number;
+  height?: number;
+  seed?: number;
+  vace_enabled?: boolean;
+  loras?: Array<{ path: string; scale?: number }>;
+  lora_merge_mode?: "permanent_merge" | "runtime_peft";
+  [key: string]: unknown;
+}
+
 // VACE (Video Anything Concept Engine) configuration
 export interface VaceConfig {
   enabled: boolean;

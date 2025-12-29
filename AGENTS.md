@@ -57,13 +57,36 @@
 - Update README and CHANGELOG for meaningful milestones.
 
 ## Workflow and Commands
-- `npm run dev` - Start development server (port 2000)
+- `npm run dev` - Start development server (uses PORT env, default 2000)
 - `npm run dev:turbo` - Start dev server with Turbopack
 - `npm run build` - Build for production
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
 - `npm run type-check` - TypeScript type check
 - `npm run test` - Run Vitest (passes with no tests until a suite exists)
+
+## Soundscape MVP Startup
+
+**Port**: 3500 (configured in `.env.local`)
+
+**Prerequisites**:
+1. RunPod pod must be running (start via console: https://console.runpod.io/pods?id=8tn9fypag1wnxz)
+2. Wait 2-3 minutes for pod initialization and Scope API to be ready
+
+**Startup Sequence**:
+```bash
+# 1. Start local dev server (soundscape MVP)
+cd 3-projects/5-software/metadj-scope
+npm run dev  # Runs on http://localhost:3500
+
+# 2. Access soundscape
+open http://localhost:3500/soundscape
+```
+
+**URLs**:
+- Local Soundscape: http://localhost:3500/soundscape
+- Scope API (RunPod): https://8tn9fypag1wnxz-8000.proxy.runpod.net
+- RunPod Console: https://console.runpod.io/pods?id=8tn9fypag1wnxz
 
 ## Coordination Patterns
 - Discovery and scoping: product + software, with documentation-generator support.

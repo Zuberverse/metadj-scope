@@ -1,177 +1,100 @@
 # Strategy - MetaDJ Scope
 
-**Last Modified**: 2025-12-28 09:35 EST
+**Last Modified**: 2025-12-29 12:26 EST
 **Status**: Active
 
 ## Purpose
-Define the goals, constraints, and decision points for the Daydream Scope hackathon project.
+Define the goals, constraints, and decision points for the Daydream Scope hackathon project, with Soundscape as the current focus.
 
 ## Selected Direction
-Build a Scope-generated MetaDJ avatar driven by live webcam input. Scope is the avatar renderer. VACE provides identity consistency. ControlNet provides pose guidance if supported by Scope.
+Build **Soundscape**: an audio-reactive visual generation experience that maps real-time music analysis to Scope parameters. Avatar Studio is paused, and Storyteller is future-facing.
 
 ## Strategic Positioning
 
-### Why This Hackathon Matters for MetaDJ
-- Direct tech alignment: Scope uses StreamDiffusion, same foundation as Dream Engine work
-- Avatar opportunity: VACE enables character-consistent generation, core to MetaDJ identity
-- Performance narrative: Z's DJ background gives authentic voice in this space
-- Portfolio expansion: Shipping this demo strengthens Zuberant's AI-native credibility
+### Why Soundscape Matters for MetaDJ
+- Directly aligned with DJ craft: music drives the experience.
+- Real-time visuals extend MetaDJ Studio performance capability.
+- Demonstrates human-orchestrated, AI-amplified creation in a compact demo.
 
 ### Unique Advantages
-1. Existing visual identity: MetaDJ avatar and aesthetic are already defined
-2. Domain expertise: performance context is native, not learned
-3. Prior AI video work: Dream Engine + StreamDiffusion experience reduces ramp-up
-4. Brand story: clear demonstration of human identity embodied by AI video
+1. Audio expertise: DJ background maps naturally to reactive visual design.
+2. Proven StreamDiffusion experience from MetaDJ Dream/Nexus work.
+3. Clear creative narrative: sound becomes sight in real time.
 
 ## Goals
 
 ### Primary
-- Ship a stable, real-time Scope avatar demo by the Jan 9 checkpoint
-- Prove Scope can embody MetaDJ identity from live webcam input
-- Keep the demo tight, reliable, and narrative-driven
+- Ship a stable, end-to-end Soundscape demo (audio input -> analysis -> Scope output).
+- Keep the experience responsive and visually consistent during playback.
+- Ensure setup is simple for testing (one local UI, one Scope server URL).
 
 ### Secondary
-- Learn Scope API and VACE deeply for future integration
-- Establish a path for streaming-ready output
-- Generate reusable patterns for MetaDJ Studio and Nexus
+- Establish a reusable theme system for future performance use.
+- Validate parameter update rates and smoothing for low-jitter output.
+- Document integration patterns for MetaDJ Studio/Nexus reuse.
 
 ## Success Metrics
-- Demo runs end-to-end without manual fixes
-- Avatar identity is consistent across minutes of runtime
-- Setup time for judges is minimal
-- Clear 1-minute explanation of the flow
+- 60+ seconds of uninterrupted Soundscape output with consistent audio reactivity.
+- At least one successful demo in each audio mode (demo, upload, mic).
+- Setup time under 5 minutes from fresh pod to live visuals.
 
 ## Constraints
-- Solo founder timeline and bandwidth
-- Hackathon timeline with mid-point (Jan 2) and final (Jan 9) demo dates
-- Holiday schedule may reduce available hours
-- Stack still TBD (API vs desktop app)
-
-## Assumptions
-- Scope supports webcam ingest via API or desktop app
-- VACE works with the chosen model and real-time pipeline
-- ControlNet support is available for pose guidance (to be validated)
-- RunPod is available if local GPU is insufficient
+- Solo founder timeline and bandwidth.
+- Hackathon timeline with midpoint (Jan 2) and final (Jan 9) demo dates.
+- RunPod pod availability and cost management.
 
 ## Risks
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| Scope setup complexity | High | Start with RunPod; follow quickstart exactly |
-| VACE quality insufficient | High | Iterate on reference set and prompts; adjust ControlNet strength |
-| Latency too high | Medium | Simplify ControlNet stack; reduce resolution or steps |
-| Over-scoping | High | Lock scope by Dec 28; defer masking and environments |
+| WebRTC connection drops | High | Add stream-stopped handling + clear error states |
+| Pipeline load latency | Medium | Load params set up-front; document load expectations |
+| Audio analysis jank | Medium | Throttle UI updates; keep analysis on audio thread |
+| Oversized uploads | Medium | Enforce file size limit and surface errors |
 
 ## Decision Points
 
-### Decision 1: Integration Path (By Dec 28)
-Options:
-- Scope API server (programmatic control)
-- Scope desktop app (manual control)
-
-Decision criteria: fastest path to a reliable webcam-to-avatar demo
-
-### Decision 2: Deployment Target (By Jan 2)
-Options:
-- Local GPU
-- RunPod
-
-Decision criteria: demo reliability and setup speed
-
-### Decision 3: Post-MVP Enhancements (After Jan 9)
-- Masking/segmentation for clean overlay
-- Background environment layers
-- TouchDesigner or Spout pipeline for performance compositing
-
-### Decision 4: UI/UX Approach (Decided Dec 26)
-**Decision**: Use native Scope platform UI for hackathon; defer custom UI to future.
+### Decision 1: UI Approach (Current)
+**Decision**: Soundscape uses the custom Next.js UI. Avatar Studio remains on native Scope UI.
 
 **Rationale**:
-- Scope's built-in UI already provides webcam input, VACE controls, prompt editing, and output display
-- Building custom UI is overhead that doesn't improve the demo's impact
-- Hackathon timeline favors focusing on the creative output (avatar quality) over infrastructure
-- Custom UI can be developed later for MetaDJ Studio/Nexus integration
+- Soundscape requires in-browser audio analysis and parameter mapping.
+- Native Scope UI does not include audio-reactive tooling.
 
-**Current State**:
-- Next.js 16 project scaffolded and ready (matches MetaDJ Nexus stack)
-- Components exist for future custom UI development
-- Focus for hackathon: use Scope UI at RunPod instance directly
-
-**Future Considerations**:
-- Custom UI for branded MetaDJ experience
-- Integration with MetaDJ Studio performance engine
-- OBS/streaming overlay controls
-- Multi-scene management for live shows
-
-### Decision 5: Pipeline Selection (Decided Dec 26)
-**Decision**: Use `longlive` pipeline with VACE enabled for hackathon demo.
+### Decision 2: Pipeline Selection
+**Decision**: Use `longlive` for Soundscape until performance testing suggests otherwise.
 
 **Rationale**:
-For the MetaDJ avatar demo, **identity consistency is paramount**. After validating multiple pipelines:
+- Stable pipeline behavior and smooth transitions.
+- Acceptable VRAM requirements on the current RunPod instance.
 
-| Pipeline | Output | VACE | Trade-off |
-|----------|--------|------|-----------|
-| `longlive` | Stylized/Artistic | ✅ Yes | Identity lock, less realistic |
-| `krea-realtime-video` | Photorealistic | ❌ No | Beautiful output, no identity consistency |
+### Decision 3: Aspect Ratio Defaults
+**Decision**: Default to 16:9 (1024x576), with optional 9:16 (480x832).
 
-**Why `longlive` + VACE wins**:
-- VACE locks MetaDJ avatar identity via reference images
-- Consistent recognizable character across runtime
-- ~20GB VRAM (runs comfortably on RTX Pro 6000 with 76GB headroom)
-- Stylized output aligns with MetaDJ aesthetic
-
-**Why NOT `krea-realtime-video`**:
-- **No VACE support** - Cannot lock identity; output varies by prompt alone
-- Higher VRAM requirement (32GB for Wan2.1-T2V-1.3B model)
-- Photorealism less important than brand consistency for this demo
-
-**Configuration** (see `docs/architecture.md` for full config):
-```yaml
-pipeline: longlive
-vace:
-  enabled: true
-  scale: 1.5
-  reference_images: [metadj-avatar-v7.0.png]
-prompt: "MetaDJ avatar, cyberpunk DJ, neon purple and cyan lighting"
-```
-
-**Validated Dec 26-27**: Both pipelines tested on RunPod instances. VACE confirmed working on `longlive`, confirmed NOT available on `krea-realtime-video`. Upgraded to RTX Pro 6000 (96GB) on Dec 27 for pipeline switching headroom.
+**Rationale**:
+- 16:9 aligns with typical screens and demo capture.
+- 9:16 remains available for social-first export.
 
 ## MVP Definition
-- Webcam input drives pose (ingest path TBD)
-- Scope generates MetaDJ avatar with VACE reference set
-- Model selection TBD (candidate models in `docs/scope-technical.md`)
-- Simple control panel for prompt intensity and style preset
-- Demo viewer (browser or desktop)
+- Audio input modes: demo track, upload, microphone.
+- Theme selection + custom theme input.
+- Audio analysis (energy, brightness, texture, beats).
+- Parameter mapping + rate-limited WebRTC updates.
+- Live visual output from Scope via WebRTC.
 
 ## Near-Term Plan
 
-### Phase 1: Validation (Dec 26-28)
-1. Confirm webcam ingest path (API or desktop app)
-2. Validate VACE reference image format and consistency
-3. Run first stream with MetaDJ prompt + reference images
-4. Lock scope and update `docs/architecture.md`
+### Phase 1: Stabilize (Now)
+1. Align WebRTC data channel behavior with Scope docs.
+2. Ensure pipeline load params follow aspect ratio selection.
+3. Harden audio upload validation.
 
-### Phase 2: Build (Dec 29 - Jan 5)
-1. Implement core demo flow
-2. Add minimal UI controls
-3. Jan 2: Midpoint check-in with working prototype
-
-### Phase 3: Polish (Jan 6-8)
-1. Stability and latency cleanup
-2. Demo preparation and rehearsal
-3. Documentation and presentation materials
-
-### Phase 4: Submit (Jan 9)
-1. Final submission
-2. Project completion and voting
+### Phase 2: Polish (Next)
+1. Calibrate mapping ranges per theme.
+2. Add basic diagnostics for connection failures.
+3. Capture demo flow steps for testing.
 
 ## Documentation Checkpoints
-- Dec 28: Architecture documented in `docs/architecture.md`
-- Jan 2: Midpoint status in `CHANGELOG.md`
-- Jan 9: Final documentation complete
-
-## Notes
-- Update this document after each major decision
-- Cross-reference with `docs/research.md`
-- Keep scope humane; ship the demo first, expand later
+- Update `docs/architecture.md` when system flow changes.
+- Update `CHANGELOG.md` for any behavior changes.
+- Keep feature status aligned across README and docs.

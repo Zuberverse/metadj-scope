@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { AvatarStudio } from "@/components/AvatarStudio";
 import { ConnectionStatus } from "@/components/ConnectionStatus";
 
@@ -16,10 +17,19 @@ export default function Home() {
             <h1 className="text-2xl font-bold">MetaDJ Scope</h1>
             <p className="text-gray-400 text-sm">AI Avatar Generator</p>
           </div>
-          <ConnectionStatus
-            isConnected={isConnected}
-            apiUrl={process.env.NEXT_PUBLIC_SCOPE_API_URL || "Not configured"}
-          />
+          <div className="flex items-center gap-4">
+            {/* Navigation */}
+            <Link
+              href="/soundscape"
+              className="text-sm text-gray-400 hover:text-white transition-colors"
+            >
+              Soundscape →
+            </Link>
+            <ConnectionStatus
+              isConnected={isConnected}
+              apiUrl={process.env.NEXT_PUBLIC_SCOPE_API_URL || "Not configured"}
+            />
+          </div>
         </div>
       </header>
 

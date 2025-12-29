@@ -1,6 +1,6 @@
 # TouchDesigner Reference
 
-**Last Modified**: 2025-12-27 18:00 EST
+**Last Modified**: 2025-12-29 12:28 EST
 **Source**: TouchDesigner Documentation (docs.derivative.ca)
 **Status**: Canonical Reference
 
@@ -88,7 +88,7 @@ TouchDesigner organizes operators into families based on data type:
 | Level | Adjust brightness, contrast, gamma |
 | Feedback | Create recursive visual effects |
 | Script | Custom Python/NumPy image processing |
-| NVIDIA Background | AI-powered person segmentation |
+| NVIDIA Background | AI-driven person segmentation |
 
 **TOP Count**: 151 operators available
 
@@ -334,7 +334,7 @@ def onCook(scriptOP):
 
 ### NVIDIA Background TOP
 
-AI-powered image segmentation using NVIDIA Maxine Video Effects SDK.
+AI-driven image segmentation using NVIDIA Maxine Video Effects SDK.
 
 **Capabilities:**
 - Person/background separation
