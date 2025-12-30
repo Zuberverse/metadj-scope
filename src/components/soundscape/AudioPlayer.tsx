@@ -329,6 +329,7 @@ export function AudioPlayer({
       {/* Mode Selector */}
       <div className="flex gap-2">
         <button
+          type="button"
           onClick={() => handleModeChange("demo")}
           disabled={disabled}
           className={`
@@ -342,6 +343,7 @@ export function AudioPlayer({
           🎵 Demo
         </button>
         <button
+          type="button"
           onClick={() => handleModeChange("upload")}
           disabled={disabled}
           className={`
@@ -355,6 +357,7 @@ export function AudioPlayer({
           📁 Upload
         </button>
         <button
+          type="button"
           onClick={() => handleModeChange("mic")}
           disabled={disabled}
           className={`
@@ -462,9 +465,10 @@ export function AudioPlayer({
         <div className="space-y-3">
           {/* Play/Pause Button */}
           <div className="flex justify-center">
-            <button
-              onClick={isPlaying ? handlePause : handlePlay}
-              disabled={disabled}
+          <button
+            type="button"
+            onClick={isPlaying ? handlePause : handlePlay}
+            disabled={disabled}
               className={`
                 w-14 h-14 rounded-full flex items-center justify-center text-2xl
                 transition-all

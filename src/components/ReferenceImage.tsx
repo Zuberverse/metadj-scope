@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 
 interface ReferenceImageProps {
@@ -11,6 +11,15 @@ interface ReferenceImageProps {
 export function ReferenceImage({ src, onImageChange }: ReferenceImageProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [assetPath, setAssetPath] = useState(
+    src.startsWith("/assets/") ? src : ""
+  );
+
+  useEffect(() => {
+    if (src.startsWith("/assets/")) {
+      setAssetPath(src);
+    }
+  }, [src]);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -41,6 +50,11 @@ export function ReferenceImage({ src, onImageChange }: ReferenceImageProps) {
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
+  };
+
+  const handleApplyAssetPath = () => {
+    if (!assetPath.trim()) return;
+    onImageChange(assetPath.trim());
   };
 
   return (
@@ -80,6 +94,29 @@ export function ReferenceImage({ src, onImageChange }: ReferenceImageProps) {
         >
           ↺
         </button>
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="scope-asset-path" className="text-xs text-gray-500">
+          Scope asset path (for VACE)
+        </label>
+        <div className="flex gap-2">
+          <input
+            id="scope-asset-path"
+            type="text"
+            value={assetPath}
+            onChange={(event) => setAssetPath(event.target.value)}
+            placeholder="/assets/metadj-avatar-reference.png"
+            className="flex-1 px-2 py-1.5 bg-scope-surface border border-scope-border rounded text-xs text-gray-200"
+          />
+          <button
+            type="button"
+            onClick={handleApplyAssetPath}
+            className="px-3 py-1.5 bg-scope-cyan text-black text-xs rounded font-medium"
+          >
+            Use
+          </button>
+        </div>
       </div>
 
       {/* Hidden file input */}

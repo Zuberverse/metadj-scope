@@ -1,6 +1,6 @@
 # MetaDJ Soundscape — MVP Specification
 
-**Last Modified**: 2025-12-29 12:28 EST
+**Last Modified**: 2025-12-30 10:47 EST
 **Status**: MVP Implementation Complete
 **Version**: 0.4.0
 
@@ -22,7 +22,7 @@
 | **Aspect Ratio Toggle** | ✅ Complete | 16:9 widescreen / 9:16 portrait |
 | **Silence Detection** | ⏳ Pending | Not yet implemented |
 | **State Persistence** | ⏳ Pending | localStorage for theme history |
-| **Test Suite** | ⏳ Pending | Unit tests for audio analysis, mapping |
+| **Test Suite** | 🟡 Partial | Mapping engine tests in place; audio analysis + hook tests pending |
 
 **Quick Start**: See README.md for setup instructions.
 

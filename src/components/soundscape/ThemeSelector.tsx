@@ -54,8 +54,10 @@ export function ThemeSelector({
           {themes.map((theme) => (
             <button
               key={theme.id}
+              type="button"
               onClick={() => handlePresetSelect(theme.id)}
               disabled={disabled}
+              aria-pressed={currentTheme?.id === theme.id}
               className={`
                 p-3 rounded-lg text-left transition-all
                 ${currentTheme?.id === theme.id
@@ -73,8 +75,10 @@ export function ThemeSelector({
 
           {/* Custom Theme Button */}
           <button
+            type="button"
             onClick={() => setShowCustom(!showCustom)}
             disabled={disabled}
+            aria-pressed={showCustom}
             className={`
               p-3 rounded-lg text-left transition-all
               ${showCustom
@@ -120,8 +124,10 @@ export function ThemeSelector({
                 (preset) => (
                   <button
                     key={preset}
+                    type="button"
                     onClick={() => setReactivity(preset)}
                     disabled={disabled}
+                    aria-pressed={reactivity === preset}
                     className={`
                       flex-1 py-1.5 px-2 rounded text-xs font-medium capitalize transition-all
                       ${reactivity === preset
@@ -144,12 +150,14 @@ export function ThemeSelector({
             </label>
             <div className="flex gap-2">
               {(["none", "pulse", "shift", "burst"] as BeatResponse[]).map((response) => (
-                <button
-                  key={response}
-                  onClick={() => setBeatResponse(response)}
-                  disabled={disabled}
-                  className={`
-                    flex-1 py-1.5 px-2 rounded text-xs font-medium capitalize transition-all
+                  <button
+                    key={response}
+                    type="button"
+                    onClick={() => setBeatResponse(response)}
+                    disabled={disabled}
+                    aria-pressed={beatResponse === response}
+                    className={`
+                      flex-1 py-1.5 px-2 rounded text-xs font-medium capitalize transition-all
                     ${beatResponse === response
                       ? "bg-scope-cyan text-black"
                       : "bg-gray-700 text-gray-300 hover:bg-gray-600"}
@@ -164,6 +172,7 @@ export function ThemeSelector({
 
           {/* Apply Button */}
           <button
+            type="button"
             onClick={handleCustomApply}
             disabled={disabled || !customPrompt.trim()}
             className={`

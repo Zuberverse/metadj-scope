@@ -137,6 +137,9 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
   // Disconnect from Scope and cleanup WebRTC resources
   // userInitiated: true if user clicked disconnect, false if connection dropped
   const handleDisconnectScope = useCallback((userInitiated = false) => {
+    stopAmbient();
+    setDataChannel(null);
+
     // Cancel any pending reconnection
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
@@ -166,7 +169,7 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
     }
 
     console.log("[Soundscape] Disconnected from Scope", userInitiated ? "(user)" : "(connection lost)");
-  }, []);
+  }, [setDataChannel, stopAmbient]);
 
   // Connect to Scope with full WebRTC flow
   const handleConnectScope = useCallback(async () => {
@@ -333,6 +336,8 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
       dataChannel.onclose = () => {
         console.log("[Soundscape] Data channel closed");
         dataChannelRef.current = null;
+        setDataChannel(null);
+        stopAmbient();
       };
 
       // Step 7: Create and send offer
@@ -483,6 +488,7 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
 
                 {/* Connect Button */}
                 <button
+                  type="button"
                   onClick={handleConnectScope}
                   className="px-4 py-2 rounded-lg font-medium transition-all bg-scope-purple hover:bg-scope-purple/80 text-white"
                 >

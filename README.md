@@ -1,32 +1,32 @@
 # MetaDJ Scope
 
-**Last Modified**: 2025-12-29 21:22 EST
+**Last Modified**: 2025-12-30 17:17 EST
 
-Hackathon exploration project for the Daydream Scope Track (Interactive AI Video Program). Building real-time AI video generation features centered on Soundscape. Avatar Studio and Storyteller are documented but not in scope for the current sprint.
+Hackathon exploration project for the Daydream Scope Track (Interactive AI Video Program). Building real-time AI video generation across **Soundscape** and **Avatar Studio**, with a home focus selector that lets the user pick the active experience.
 
 ## Overview
-- **Phase**: Hackathon active - Soundscape MVP complete, polishing + testing
-- **Direction**: Audio-reactive AI video (Soundscape focus)
+- **Phase**: Hackathon active - Soundscape + Avatar Studio MVPs, polishing + testing
+- **Direction**: Audio-reactive AI video + MetaDJ avatar generation
 - **RunPod**: Deployed (`metadj-scope` on RTX Pro 6000)
-- **Features**: Soundscape (active), Avatar Studio (paused), Storyteller (future)
+- **Features**: Soundscape (active), Avatar Studio (active), Storyteller (future)
 
 ## Key Features (Status)
 - **Soundscape** (active): Audio-reactive visuals driven by real-time music analysis.
-- **Avatar Studio** (paused): Webcam-driven MetaDJ avatar generation (not current focus).
+- **Avatar Studio** (active): Webcam-driven MetaDJ avatar generation with VACE identity lock.
 - **Storyteller** (future): Narrative visual mode for spoken or scripted prompts (renamed from Storytelling).
 
 ## Technology Stack
-- Next.js 16 + TypeScript + Tailwind 4 (Soundscape UI active; Avatar UI deferred)
+- Next.js 16 + TypeScript + Tailwind 4 (Soundscape + Avatar Studio UIs active)
 - Scope native UI (Avatar Studio demo)
 - RunPod deployment (RTX Pro 6000) for real-time inference
 
 ## UI Approach
 
-**Soundscape (current)**: Use the custom Soundscape UI at `/soundscape`. Audio analysis and parameter mapping run in the browser, then stream parameters to Scope over WebRTC.
+**Home Focus Selector**: The app opens with two prominent tiles (Soundscape + Avatar Studio). Users click a tile to focus the full UI below it.
 
-**Avatar Studio (paused)**: Use native Scope platform UI directly at the RunPod instance. The Scope UI already provides webcam input, VACE controls, prompt editing, and output display.
+**Soundscape (current)**: Custom UI with in-browser audio analysis and parameter mapping streamed to Scope over WebRTC.
 
-**Future**: Expand the Next.js UI into a unified MetaDJ Scope control layer after the hackathon.
+**Avatar Studio (current)**: Custom UI for prompt + VACE reference path + webcam ingest + WebRTC video-to-video streaming. Native Scope UI remains available as a fallback.
 
 **Access Scope UI**: https://t68d6nv3pi7uia-8000.proxy.runpod.net
 
@@ -35,6 +35,13 @@ Hackathon exploration project for the Daydream Scope Track (Interactive AI Video
 - **Timeline**: Dec 22 - Jan 8 (two-week sprint)
 - **Prizes**: $2,500 / $1,750 / $750 for top 3
 - **Details**: See `docs/scope.md`
+
+**Note**: The Scope Track hackathon served as the catalyst to begin development. MetaDJ Soundscape will continue evolving beyond the hackathon as part of the broader MetaDJ ecosystem.
+
+### Scope Track Submission Assets
+- `docs/scope-track-overview.md` - Concise project description for Creator Hub submission
+- `docs/assets/soundscape-cover.jpg` - Cover art (1280x720) for hackathon submission
+- `docs/assets/soundscape-cover.svg` - Source SVG for cover art
 
 ## MetaDJ Alignment
 This project connects to the broader MetaDJ ecosystem:
@@ -117,7 +124,7 @@ See `docs/architecture.md` for detailed troubleshooting guide.
 
 ## Pipeline Selection (Quick Reference)
 
-**For MetaDJ avatar demo (paused), use `longlive` + VACE** (identity consistency > photorealism).
+**For MetaDJ avatar demo (active), use `longlive` + VACE** (identity consistency > photorealism).
 
 | Pipeline | Best For | VACE | VRAM |
 |----------|----------|------|------|
@@ -140,11 +147,11 @@ See `docs/scope-technical.md` for complete pipeline documentation.
 npm install
 ```
 
-Hackathon mode uses the native Scope UI, so local install is only needed for future custom UI work.
+Hackathon mode uses the custom UI for Soundscape and Avatar Studio; the native Scope UI remains a fallback.
 
 ## Development
 
-### Local Development (Future Custom UI)
+### Local Development
 
 ```bash
 # Start development server (port 3500)
@@ -158,7 +165,7 @@ npm run type-check
 ```
 
 Local dev server: http://localhost:3500
-Note: The scaffold now uses Scope's WebRTC offer flow. Set `NEXT_PUBLIC_SCOPE_API_URL` to your Scope server and start the `longlive` pipeline before clicking "Start Generation." Reference images only apply when the path is a Scope asset (e.g., `/assets/...`).
+Note: The UI uses Scope's WebRTC offer flow in video-to-video mode. Start the webcam before clicking "Start Generation." Set `NEXT_PUBLIC_SCOPE_API_URL` to your Scope server and load the `longlive` pipeline. Reference images only apply when the path is a Scope asset (e.g., `/assets/...`).
 
 ## Deployment
 
@@ -192,8 +199,8 @@ npm run test:watch
 
 ## Architecture
 - MVP architecture defined in `docs/architecture.md`
-- **Current**: Native Scope UI for hackathon
-- **Future**: Custom UI components in `src/components/`
+- **Current**: Home focus selector with Soundscape + Avatar Studio UIs
+- **Fallback**: Native Scope UI for troubleshooting
 - **API Client**: `src/lib/scope/` - typed Scope API client (for future integration)
 
 ## Environment Variables
@@ -202,7 +209,11 @@ See `.env.example` for the full list and comments.
 | Variable | Required | Description |
 | --- | --- | --- |
 | `HF_TOKEN` | RunPod only | HuggingFace token for TURN server when deploying Scope on RunPod |
-| `NEXT_PUBLIC_SCOPE_API_URL` | Local UI only | Scope API server base URL for the scaffolded UI |
+| `NEXT_PUBLIC_SCOPE_API_URL` | Local UI only | Scope API server base URL for browser requests |
+| `SCOPE_API_URL` | Optional | Server-only API URL (scripts or server routes) |
+| `SCOPE_PROXY_ENABLE` | Optional | Enable `/api/scope` proxy in production |
+| `SCOPE_PROXY_TOKEN` | Optional | Shared proxy token (pair with `NEXT_PUBLIC_SCOPE_PROXY_TOKEN`) |
+| `NEXT_PUBLIC_SCOPE_PROXY_TOKEN` | Optional | Browser token for proxy access |
 | `LIVEPEER_API_KEY` | Optional | Future Livepeer integration |
 
 ## Documentation
@@ -216,6 +227,7 @@ Complete platform documentation extracted from official sources:
 - `docs/touchdesigner-reference.md` - **TouchDesigner reference** (operators, Spout integration, AI/ML workflows)
 
 ### Project Documentation
+- `docs/scope-track-overview.md` - **Scope Track submission overview** (MetaDJ Soundscape)
 - `docs/scope.md` - Hackathon brief and requirements
 - `docs/scope-technical.md` - Project-specific technical decisions
 - `docs/strategy.md` - Goals, constraints, decision points
@@ -234,7 +246,7 @@ Complete platform documentation extracted from official sources:
 - `CHANGELOG.md` - Project milestones
 
 ## Key Decisions
-1. **UI Approach**: Native Scope UI for hackathon; custom UI deferred (Dec 26)
+1. **UI Approach**: Home focus selector with Soundscape + Avatar Studio UIs; native Scope UI fallback (Dec 30)
 2. **Deployment**: RunPod with RTX Pro 6000 (96GB VRAM) - upgraded from RTX 5090 (Dec 27)
 3. **Stack**: Next.js 16 + Tailwind 4 (matches MetaDJ Nexus)
 4. **Pipeline**: `longlive` + VACE for identity consistency (Dec 26)

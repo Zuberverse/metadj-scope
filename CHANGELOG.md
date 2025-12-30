@@ -1,6 +1,6 @@
 # Changelog
 
-**Last Modified**: 2025-12-29 22:15 EST
+**Last Modified**: 2025-12-30 17:13 EST
 
 All notable changes to this project will be documented in this file.
 
@@ -10,6 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Home focus selector with two large tiles to switch between Soundscape and Avatar Studio
+- Avatar Studio status messaging during connection flow (health, pipeline load, SDP, connected)
+- Avatar Studio "Apply Updates" button to send prompt/VACE changes to the active stream
+- Avatar Studio webcam ingest (video-to-video mode with `input_mode: "video"`)
+- Avatar Studio auto-reconnect (3 attempts with backoff)
+- Dynamic imports for Soundscape + Avatar Studio to reduce initial load
+- Minimal Vitest coverage for focus toggle and Avatar Studio apply-updates UI
+- jsdom dev dependency for DOM-based Vitest runs
+- VACE asset path input in Avatar Studio (server asset path support)
+- Optional proxy guard for `/api/scope` with `SCOPE_PROXY_ENABLE` + `SCOPE_PROXY_TOKEN`
+- Brand font stack (Cinzel display, Poppins body, JetBrains Mono for code)
+- `SCOPE_API_URL` and proxy token env examples in `.env.example`
 - `docs/soundscape-mechanics.md` - Technical deep-dive on how Soundscape works (latent cache, noise, FPS, transitions, why forward motion happens)
 - WebRTC reconnection logic with exponential backoff (max 3 attempts, 2s base delay)
 - Retry button when connection fails after max reconnection attempts
@@ -37,6 +49,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `aria-live` regions for dynamic content updates
 
 ### Changed
+- Avatar Studio promoted to active MVP alongside Soundscape
+- Avatar Studio pipeline load now toggles `vace_enabled` and always sends `paused: false`
+- Avatar Studio start button now requires webcam to be active
+- Soundscape UI parameter updates throttled to avoid unnecessary re-renders
+- ParameterSender clears pending timers when data channel closes
 - Denoising steps now use fixed 4-step schedule `[1000, 750, 500, 250]` matching Scope UI defaults (no energy-based variation)
 - Removed vaceScale from mapping engine and parameter smoothing (Soundscape is text-only, no VACE)
 - Removed unused `computeDenoisingSteps()` method from MappingEngine (dead code cleanup)
@@ -64,6 +81,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No first-run download delays—can switch pipelines instantly
 
 ### Fixed
+- Soundscape disconnect now clears the data channel and stops ambient mode
+- Avatar Studio data channel closure now stops the stream and cleans up connection state
 - Audio mode now properly connects parameter sender to data channel when audio is connected after Scope (was causing audio to not drive visuals)
 - Health endpoint uses `/health` (root-level, no `/api/v1/` prefix—unique to this endpoint; all other endpoints use `/api/v1/` prefix)
 - Soundscape now loads pipeline with `vace_enabled: false` for pure text-to-video mode (was causing silent generation failure)

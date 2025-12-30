@@ -370,6 +370,7 @@ export class ParameterSender {
   private lastSendTime = 0;
   private pendingParams: ScopeParameters | null = null;
   private sendScheduled = false;
+  private sendTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
   constructor(updateRate = 30) {
     this.targetUpdateRate = updateRate;
@@ -378,8 +379,17 @@ export class ParameterSender {
   /**
    * Set the data channel for sending parameters
    */
-  setDataChannel(channel: RTCDataChannel): void {
+  setDataChannel(channel: RTCDataChannel | null): void {
     this.dataChannel = channel;
+
+    if (!channel) {
+      this.pendingParams = null;
+      this.sendScheduled = false;
+      if (this.sendTimeoutId) {
+        clearTimeout(this.sendTimeoutId);
+        this.sendTimeoutId = null;
+      }
+    }
   }
 
   /**
@@ -401,13 +411,16 @@ export class ParameterSender {
 
     this.sendScheduled = true;
 
-    setTimeout(() => {
+    this.sendTimeoutId = setTimeout(() => {
       this.sendScheduled = false;
+      this.sendTimeoutId = null;
 
-      if (
-        this.pendingParams &&
-        this.dataChannel?.readyState === "open"
-      ) {
+      if (!this.dataChannel || this.dataChannel.readyState !== "open") {
+        this.pendingParams = null;
+        return;
+      }
+
+      if (this.pendingParams) {
         this.dataChannel.send(
           JSON.stringify(this.formatParams(this.pendingParams))
         );

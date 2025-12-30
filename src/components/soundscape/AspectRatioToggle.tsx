@@ -31,6 +31,7 @@ export function AspectRatioToggle({
     <div className="flex items-center gap-3">
       <span className="text-sm text-gray-400">Aspect</span>
       <button
+        type="button"
         onClick={handleToggle}
         disabled={disabled}
         className={`

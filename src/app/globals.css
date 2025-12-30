@@ -2,7 +2,7 @@
 
 @theme {
   /*
-   * MetaDJ Scope — Visual System
+   * MetaDJ Scope - Visual System
    * Design tokens aligned with MetaDJ Nexus (canonical reference).
    * See: 1-system/1-context/1-knowledge/9-visual-assets/visual-identity-context-standards.md
    */
@@ -12,7 +12,7 @@
   --color-scope-surface: #1a1a1a;
   --color-scope-elevated: #242424;
   --color-scope-border: #2a2a2a;
-  --color-scope-accent: #7c3aed;
+  --color-scope-accent: var(--color-scope-purple);
   --color-scope-success: #22c55e;
   --color-scope-warning: #eab308;
   --color-scope-error: #ef4444;
@@ -20,15 +20,15 @@
   /*
    * MetaDJ Brand Colors (Primary Tier)
    * Canonical values from visual-identity-context-standards.md
-   * These trace the transformation arc: Purple → Cyan → Magenta
+   * These trace the transformation arc: Purple -> Cyan -> Magenta
    */
-  --color-scope-purple: #8B5CF6;   /* oklch(0.646 0.222 264.376) — Human wisdom */
-  --color-scope-cyan: #06B6D4;     /* oklch(0.6 0.118 184.704) — AI amplification */
-  --color-scope-magenta: #D946EF;  /* oklch(0.702 0.295 328.3) — Transformation */
+  --color-scope-purple: oklch(0.646 0.222 264.376);   /* Human wisdom */
+  --color-scope-cyan: oklch(0.6 0.118 184.704);       /* AI amplification */
+  --color-scope-magenta: oklch(0.702 0.295 328.3);    /* Transformation */
 
   /* Secondary tier */
-  --color-scope-indigo: #6366F1;   /* Technical depth */
-  --color-scope-blue: #3B82F6;     /* Infrastructure reliability */
+  --color-scope-indigo: oklch(0.627 0.265 303.9);     /* Technical depth */
+  --color-scope-blue: oklch(0.59 0.21 255);           /* Infrastructure reliability */
 
   /* Background and foreground */
   --color-background: #0a0a0a;
@@ -38,12 +38,28 @@
 :root {
   --background: #0a0a0a;
   --foreground: #ededed;
+  --font-body: var(--font-poppins);
+  --font-display: var(--font-cinzel);
+  --font-mono: var(--font-jetbrains-mono);
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-body), sans-serif;
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-display), serif;
+}
+
+code,
+pre,
+.font-mono {
+  font-family: var(--font-mono), monospace;
 }
 
 /* Custom scrollbar for dark theme */

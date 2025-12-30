@@ -1,6 +1,6 @@
 # Tools - MetaDJ Scope
 
-**Last Modified**: 2025-12-28 09:35 EST
+**Last Modified**: 2025-12-30 10:48 EST
 **Status**: Draft
 
 ## Purpose
@@ -63,11 +63,11 @@ Track tools, services, and integrations for the Daydream Scope hackathon project
 | TouchDesigner | Visual programming | Live performance/VJ | Not selected |
 | ComfyUI | Node-based AI | Custom pipelines | Not selected |
 
-## Development Stack (Scaffolded, Inactive)
+## Development Stack (Active)
 
-### Scope Control UI (Future)
-- Next.js 16 + TypeScript + Tailwind 4 scaffold in place
-- Custom UI/UX deferred until after the hackathon demo
+### Scope Control UI (Current)
+- Next.js 16 + TypeScript + Tailwind 4
+- Home focus selector for Soundscape + Avatar Studio
 
 ### Alternative Stacks (Post-MVP)
 - Unity + Scope (if 3D compositing is required)

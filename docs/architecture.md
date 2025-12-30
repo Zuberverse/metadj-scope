@@ -1,18 +1,20 @@
 # Architecture - MetaDJ Scope
 
-**Last Modified**: 2025-12-29 21:20 EST
+**Last Modified**: 2025-12-30 16:52 EST
 **Status**: Active
 
 ## Purpose
-Document the architecture for MetaDJ Scope with Soundscape as the active experience and Avatar Studio paused.
+Document the architecture for MetaDJ Scope with Soundscape and Avatar Studio active side-by-side.
 
 ---
 
 ## UI Approach
 
-**Soundscape (current)**: Custom Next.js UI at `/soundscape` for in-browser audio analysis and parameter mapping.
+**Home Focus Selector (current)**: Two large tiles (Soundscape + Avatar Studio) at `/` toggle which experience is focused below.
 
-**Avatar Studio (paused)**: Native Scope platform UI for webcam + VACE control (no custom UI build during hackathon).
+**Soundscape (current)**: Custom Next.js UI for in-browser audio analysis and parameter mapping.
+
+**Avatar Studio (current)**: Custom UI with prompt editing, VACE asset path entry, webcam ingest, and WebRTC video-to-video streaming. Native Scope UI remains a fallback.
 
 ---
 
@@ -80,11 +82,16 @@ Document the architecture for MetaDJ Scope with Soundscape as the active experie
 
 ---
 
-## Avatar Studio (Paused)
+## Avatar Studio (Active)
 
-Avatar Studio remains documented but is not active in the current sprint. See:
+Avatar Studio runs in video-to-video mode: it sends a webcam video track to Scope and receives the transformed output in the same WebRTC session. VACE is enabled when a Scope server asset path is provided. See:
 - `docs/features/avatar-mvp-spec.md`
 - `docs/scope-technical.md`
+
+### Avatar Studio WebRTC Notes
+- Add the webcam track via `pc.addTrack(track, inputStream)` (no recv-only transceiver).
+- Initial parameters must include `input_mode: "video"` for video-to-video.
+- Match webcam resolution to pipeline resolution (default: 320x576).
 
 ---
 

@@ -17,6 +17,7 @@ import type {
 export class ScopeClient {
   private baseUrl: string;
   private defaultTimeout: number;
+  private proxyToken: string | undefined;
 
   constructor(baseUrl?: string, timeout = 30000) {
     // Use local API proxy to avoid CORS issues with RunPod
@@ -25,6 +26,7 @@ export class ScopeClient {
     // Remove trailing slash if present
     this.baseUrl = this.baseUrl.replace(/\/$/, "");
     this.defaultTimeout = timeout;
+    this.proxyToken = process.env.NEXT_PUBLIC_SCOPE_PROXY_TOKEN;
   }
 
   /**
@@ -40,8 +42,13 @@ export class ScopeClient {
     const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
+      const headers = new Headers(options.headers);
+      if (this.proxyToken) {
+        headers.set("x-scope-token", this.proxyToken);
+      }
       const response = await fetch(url, {
         ...options,
+        headers,
         signal: controller.signal,
       });
       return response;

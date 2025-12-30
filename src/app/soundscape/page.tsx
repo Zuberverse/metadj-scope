@@ -30,7 +30,7 @@ export default function SoundscapePage() {
               href="/"
               className="text-sm text-gray-400 hover:text-white transition-colors"
             >
-              ← Avatar Studio
+              ← Home
             </Link>
             <ConnectionStatus
               isConnected={isConnected}

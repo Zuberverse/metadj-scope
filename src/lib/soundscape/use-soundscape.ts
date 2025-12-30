@@ -45,7 +45,7 @@ export interface UseSoundscapeReturn {
   /** Disconnect audio */
   disconnectAudio: () => void;
   /** Set the data channel for Scope communication */
-  setDataChannel: (channel: RTCDataChannel) => void;
+  setDataChannel: (channel: RTCDataChannel | null) => void;
 
   /** Start analysis and parameter generation */
   start: () => void;
@@ -111,6 +111,7 @@ export function useSoundscape(options: UseSoundscapeOptions = {}): UseSoundscape
   }));
 
   const [parameters, setParameters] = useState<ScopeParameters | null>(null);
+  const parametersRef = useRef<ScopeParameters | null>(null);
 
   // Debug logger
   const log = useCallback(
@@ -225,15 +226,18 @@ export function useSoundscape(options: UseSoundscapeOptions = {}): UseSoundscape
   // ============================================================================
 
   const setDataChannel = useCallback(
-    (channel: RTCDataChannel) => {
+    (channel: RTCDataChannel | null) => {
       // Store for later use (e.g., ambient mode)
       dataChannelRef.current = channel;
 
       if (parameterSenderRef.current) {
         parameterSenderRef.current.setDataChannel(channel);
       }
-      setState((prev) => ({ ...prev, connection: "connected" }));
-      log("Data channel connected");
+      setState((prev) => ({
+        ...prev,
+        connection: channel ? "connected" : "disconnected",
+      }));
+      log(channel ? "Data channel connected" : "Data channel cleared");
     },
     [log]
   );
@@ -245,21 +249,24 @@ export function useSoundscape(options: UseSoundscapeOptions = {}): UseSoundscape
   const handleAnalysis = useCallback(
     (analysis: AnalysisState) => {
       const now = performance.now();
-      if (now - lastUiUpdateRef.current >= uiUpdateIntervalMs) {
-        // Update UI state at a lower rate to avoid jank
-        setState((prev) => ({ ...prev, analysis }));
-        lastUiUpdateRef.current = now;
-      }
+      const shouldUpdateUi = now - lastUiUpdateRef.current >= uiUpdateIntervalMs;
 
       // Generate Scope parameters
       if (mappingEngineRef.current) {
         const params = mappingEngineRef.current.computeParameters(analysis);
-        setParameters(params);
+        parametersRef.current = params;
 
         // Send to Scope if connected
         if (parameterSenderRef.current) {
           parameterSenderRef.current.send(params);
         }
+      }
+
+      if (shouldUpdateUi) {
+        // Update UI state at a lower rate to avoid jank
+        setState((prev) => ({ ...prev, analysis }));
+        setParameters(parametersRef.current);
+        lastUiUpdateRef.current = now;
       }
     },
     [uiUpdateIntervalMs]
@@ -351,6 +358,7 @@ export function useSoundscape(options: UseSoundscapeOptions = {}): UseSoundscape
       };
 
       const params = mappingEngineRef.current.computeParameters(ambientAnalysis);
+      parametersRef.current = params;
       setParameters(params);
 
       // Send to Scope if connected

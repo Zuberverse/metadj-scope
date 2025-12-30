@@ -5,12 +5,15 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
-const SCOPE_API_URL = (process.env.NEXT_PUBLIC_SCOPE_API_URL || "http://localhost:8000").replace(
-  /\/$/,
-  ""
-);
+const SCOPE_API_URL = (
+  process.env.SCOPE_API_URL ||
+  process.env.NEXT_PUBLIC_SCOPE_API_URL ||
+  "http://localhost:8000"
+).replace(/\/$/, "");
 
 const HEADER_ALLOWLIST = ["content-type", "accept", "authorization"];
+const PROXY_ENABLED = process.env.NODE_ENV !== "production" || process.env.SCOPE_PROXY_ENABLE === "true";
+const PROXY_TOKEN = process.env.SCOPE_PROXY_TOKEN;
 
 // Timeout configuration (in milliseconds)
 const DEFAULT_TIMEOUT = 30000;
@@ -31,6 +34,23 @@ async function proxyRequest(
   const { path } = await params;
   const targetPath = path.join("/");
   const targetUrl = `${SCOPE_API_URL}/${targetPath}${request.nextUrl.search}`;
+
+  if (!PROXY_ENABLED) {
+    return NextResponse.json(
+      { error: "Scope proxy disabled in production" },
+      { status: 403 }
+    );
+  }
+
+  if (PROXY_TOKEN) {
+    const token = request.headers.get("x-scope-token");
+    if (token !== PROXY_TOKEN) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+  }
 
   const headers = new Headers();
   for (const headerName of HEADER_ALLOWLIST) {

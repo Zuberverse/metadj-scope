@@ -4,19 +4,33 @@ import { useRef, useEffect, useState, useCallback } from "react";
 
 interface WebcamPreviewProps {
   onStreamReady?: (stream: MediaStream) => void;
+  onStreamStop?: () => void;
+  preferredWidth?: number;
+  preferredHeight?: number;
+  preferredFrameRate?: number;
 }
 
-export function WebcamPreview({ onStreamReady }: WebcamPreviewProps) {
+export function WebcamPreview({
+  onStreamReady,
+  onStreamStop,
+  preferredWidth,
+  preferredHeight,
+  preferredFrameRate,
+}: WebcamPreviewProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isActive, setIsActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const startWebcam = useCallback(async () => {
     try {
+      const width = preferredWidth ?? 512;
+      const height = preferredHeight ?? 512;
+      const frameRate = preferredFrameRate ?? 15;
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          width: { ideal: 512 },
-          height: { ideal: 512 },
+          width: { ideal: width },
+          height: { ideal: height },
+          frameRate: { ideal: frameRate, max: Math.max(frameRate, 20) },
           facingMode: "user",
         },
         audio: false,
@@ -33,7 +47,7 @@ export function WebcamPreview({ onStreamReady }: WebcamPreviewProps) {
       console.error("[Webcam] Failed to start:", err);
       setError("Could not access webcam. Please check permissions.");
     }
-  }, [onStreamReady]);
+  }, [onStreamReady, preferredWidth, preferredHeight, preferredFrameRate]);
 
   const stopWebcam = useCallback(() => {
     if (videoRef.current?.srcObject) {
@@ -41,8 +55,9 @@ export function WebcamPreview({ onStreamReady }: WebcamPreviewProps) {
       stream.getTracks().forEach((track) => track.stop());
       videoRef.current.srcObject = null;
       setIsActive(false);
+      onStreamStop?.();
     }
-  }, []);
+  }, [onStreamStop]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -80,6 +95,7 @@ export function WebcamPreview({ onStreamReady }: WebcamPreviewProps) {
       <div className="flex gap-2">
         {!isActive ? (
           <button
+            type="button"
             onClick={startWebcam}
             className="flex-1 py-2 bg-scope-accent hover:bg-scope-accent/80 rounded text-sm font-medium transition-colors"
           >
@@ -87,6 +103,7 @@ export function WebcamPreview({ onStreamReady }: WebcamPreviewProps) {
           </button>
         ) : (
           <button
+            type="button"
             onClick={stopWebcam}
             className="flex-1 py-2 bg-gray-600 hover:bg-gray-500 rounded text-sm font-medium transition-colors"
           >
