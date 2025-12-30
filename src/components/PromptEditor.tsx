@@ -23,25 +23,25 @@ export function PromptEditor({ value, onChange, styleModifiers }: PromptEditorPr
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
       {/* Main Prompt */}
-      <div>
-        <label htmlFor="prompt-editor" className="block text-sm text-gray-400 mb-2">
-          Generation Prompt
+      <div className="space-y-3">
+        <label htmlFor="prompt-editor" className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 px-1">
+          Neural Descriptor
         </label>
         <textarea
           id="prompt-editor"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           rows={4}
-          className="w-full bg-black border border-scope-border rounded-lg p-3 text-sm resize-none focus:outline-none focus:border-scope-accent"
-          placeholder="Describe the avatar style..."
+          className="w-full glass bg-black/40 border border-white/5 rounded-2xl p-4 text-sm resize-none focus:outline-none focus:border-scope-cyan/40 focus:ring-1 focus:ring-scope-cyan/20 transition-all duration-300 text-white placeholder:text-white/10"
+          placeholder="Inject style parameters..."
         />
       </div>
 
       {/* Style Modifiers */}
-      <fieldset>
-        <legend className="block text-sm text-gray-400 mb-2">
+      <fieldset className="space-y-4">
+        <legend className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 px-1">
           Style Modifiers
         </legend>
         <div className="flex flex-wrap gap-2" role="group" aria-label="Toggle style modifiers">
@@ -53,11 +53,12 @@ export function PromptEditor({ value, onChange, styleModifiers }: PromptEditorPr
                 type="button"
                 onClick={() => handleModifierToggle(modifier)}
                 aria-pressed={isActive}
-                className={`px-3 py-1 rounded-full text-xs transition-colors ${
-                  isActive
-                    ? "bg-scope-accent text-white"
-                    : "bg-scope-border text-gray-400 hover:bg-scope-accent/50"
-                }`}
+                className={`
+                  px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-widest transition-all duration-500 hover:scale-105 active:scale-95
+                  ${isActive
+                    ? "bg-scope-purple text-white shadow-[0_0_20px_rgba(139,92,246,0.3)] border-white/10"
+                    : "glass text-white/40 hover:text-white border-white/5 hover:bg-white/5"}
+                `}
               >
                 {modifier}
               </button>
@@ -67,39 +68,27 @@ export function PromptEditor({ value, onChange, styleModifiers }: PromptEditorPr
       </fieldset>
 
       {/* Quick Presets */}
-      <fieldset>
-        <legend className="block text-sm text-gray-400 mb-2">
-          Quick Presets
+      <fieldset className="space-y-4">
+        <legend className="text-[10px] font-black uppercase tracking-[0.4em] text-white/20 px-1">
+          Neural Presets
         </legend>
-        <div className="grid grid-cols-2 gap-2" role="group" aria-label="Prompt presets">
-          <button
-            type="button"
-            onClick={() => onChange("A digital avatar of MetaDJ, cyberpunk style, neon lighting, futuristic DJ")}
-            className="py-2 px-3 bg-scope-border hover:bg-scope-accent/50 rounded text-xs transition-colors"
-          >
-            Cyberpunk DJ
-          </button>
-          <button
-            type="button"
-            onClick={() => onChange("MetaDJ avatar, ethereal cosmic being, galaxy background, starlight")}
-            className="py-2 px-3 bg-scope-border hover:bg-scope-accent/50 rounded text-xs transition-colors"
-          >
-            Cosmic
-          </button>
-          <button
-            type="button"
-            onClick={() => onChange("MetaDJ as a neon hologram, glowing wireframe, digital matrix")}
-            className="py-2 px-3 bg-scope-border hover:bg-scope-accent/50 rounded text-xs transition-colors"
-          >
-            Hologram
-          </button>
-          <button
-            type="button"
-            onClick={() => onChange("Retro 80s MetaDJ, synthwave aesthetic, purple and pink, grid lines")}
-            className="py-2 px-3 bg-scope-border hover:bg-scope-accent/50 rounded text-xs transition-colors"
-          >
-            Synthwave
-          </button>
+        <div className="grid grid-cols-2 gap-3" role="group" aria-label="Prompt presets">
+          {[
+            { label: "Cyberpunk DJ", prompt: "A digital avatar of MetaDJ, cyberpunk style, neon lighting, futuristic DJ" },
+            { label: "Cosmic Essence", prompt: "MetaDJ avatar, ethereal cosmic being, galaxy background, starlight" },
+            { label: "Holo Matrix", prompt: "MetaDJ as a neon hologram, glowing wireframe, digital matrix" },
+            { label: "Vapor Grid", prompt: "Retro 80s MetaDJ, synthwave aesthetic, purple and pink, grid lines" }
+          ].map((preset, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => onChange(preset.prompt)}
+              className="group py-4 px-4 glass bg-white/5 hover:bg-scope-purple/10 border-white/5 hover:border-scope-purple/30 rounded-2xl text-[10px] font-black uppercase tracking-widest text-white/30 hover:text-white transition-all duration-500 hover:scale-[1.02] active:scale-95 text-left flex flex-col gap-1"
+            >
+              <span className="text-white group-hover:text-pop transition-all">{preset.label}</span>
+              <span className="opacity-0 group-hover:opacity-100 transition-opacity text-[8px] text-scope-purple/60">Load Sequence</span>
+            </button>
+          ))}
         </div>
       </fieldset>
     </div>

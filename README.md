@@ -1,8 +1,8 @@
 # MetaDJ Scope
 
-**Last Modified**: 2025-12-30 17:17 EST
+**Last Modified**: 2025-12-30 17:31 EST
 
-Hackathon exploration project for the Daydream Scope Track (Interactive AI Video Program). Building real-time AI video generation across **Soundscape** and **Avatar Studio**, with a home focus selector that lets the user pick the active experience.
+Hackathon exploration project for the Daydream Scope Track (Interactive AI Video Program). Building real-time AI video generation across **Soundscape** and **Avatar Studio**, with dedicated pages for each experience.
 
 ## Overview
 - **Phase**: Hackathon active - Soundscape + Avatar Studio MVPs, polishing + testing
@@ -17,16 +17,19 @@ Hackathon exploration project for the Daydream Scope Track (Interactive AI Video
 
 ## Technology Stack
 - Next.js 16 + TypeScript + Tailwind 4 (Soundscape + Avatar Studio UIs active)
-- Scope native UI (Avatar Studio demo)
+- Scope native UI fallback (Avatar Studio troubleshooting)
 - RunPod deployment (RTX Pro 6000) for real-time inference
 
 ## UI Approach
 
-**Home Focus Selector**: The app opens with two prominent tiles (Soundscape + Avatar Studio). Users click a tile to focus the full UI below it.
+**Page Structure**: Three dedicated pages for clean separation:
+- **Home** (`/`) — Landing page with tiles linking to each experience
+- **Soundscape** (`/soundscape`) — Music-reactive AI visual generation
+- **Avatar Studio** (`/avatar`) — MetaDJ avatar generation with VACE
 
-**Soundscape (current)**: Custom UI with in-browser audio analysis and parameter mapping streamed to Scope over WebRTC.
+**Soundscape**: Custom UI with in-browser audio analysis and parameter mapping streamed to Scope over WebRTC.
 
-**Avatar Studio (current)**: Custom UI for prompt + VACE reference path + webcam ingest + WebRTC video-to-video streaming. Native Scope UI remains available as a fallback.
+**Avatar Studio**: Custom UI for prompt + VACE reference path + webcam ingest + WebRTC video-to-video streaming. Use "Apply Updates" to push prompt/VACE changes to the live stream. Native Scope UI remains available as a fallback.
 
 **Access Scope UI**: https://t68d6nv3pi7uia-8000.proxy.runpod.net
 
@@ -90,6 +93,16 @@ npm run dev
 # 1. Select Demo mode and hit Play
 # 2. Click "Connect to Scope" (requires RunPod pod running)
 # 3. Watch audio-reactive visuals generate
+```
+
+### Avatar Studio Quick Start
+```bash
+npm run dev
+# Open http://localhost:3500/avatar
+# 1. Start Webcam
+# 2. Click "Start Generation"
+# 3. Adjust prompt/VACE and click "Apply Updates" to update the live stream
+# 4. If the connection drops, the UI retries up to 3 times
 ```
 
 ### Specification
@@ -197,9 +210,11 @@ npm run test
 npm run test:watch
 ```
 
+Tests use Vitest with jsdom (`vitest.config.ts`) and live in `tests/`.
+
 ## Architecture
 - MVP architecture defined in `docs/architecture.md`
-- **Current**: Home focus selector with Soundscape + Avatar Studio UIs
+- **Current**: Landing page with links to dedicated Soundscape (`/soundscape`) and Avatar (`/avatar`) pages
 - **Fallback**: Native Scope UI for troubleshooting
 - **API Client**: `src/lib/scope/` - typed Scope API client (for future integration)
 
@@ -246,7 +261,7 @@ Complete platform documentation extracted from official sources:
 - `CHANGELOG.md` - Project milestones
 
 ## Key Decisions
-1. **UI Approach**: Home focus selector with Soundscape + Avatar Studio UIs; native Scope UI fallback (Dec 30)
+1. **UI Approach**: Dedicated pages — Home landing (`/`), Soundscape (`/soundscape`), Avatar (`/avatar`); native Scope UI fallback (Dec 30)
 2. **Deployment**: RunPod with RTX Pro 6000 (96GB VRAM) - upgraded from RTX 5090 (Dec 27)
 3. **Stack**: Next.js 16 + Tailwind 4 (matches MetaDJ Nexus)
 4. **Pipeline**: `longlive` + VACE for identity consistency (Dec 26)

@@ -1,12 +1,36 @@
 # Scope Workflows Reference
 
-**Last Modified**: 2025-12-27 14:00 EST
-**Source**: GitHub repository (github.com/daydreamlive/scope/docs)
+**Last Modified**: 2025-12-30 12:45 EST
+**Source**: [GitHub Repository](https://github.com/daydreamlive/scope) · [API Docs](https://github.com/daydreamlive/scope/tree/main/docs/api)
 **Status**: Canonical Reference
 
 ## Purpose
 
 Complete workflow documentation for Daydream Scope, covering WebRTC streaming modes, VACE identity conditioning, LoRA adapters, and Spout integration.
+
+### Official Source Links
+
+| Workflow | GitHub Link |
+|----------|-------------|
+| WebRTC Receive | [docs/api/receive.md](https://github.com/daydreamlive/scope/blob/main/docs/api/receive.md) |
+| WebRTC Send/Receive | [docs/api/sendreceive.md](https://github.com/daydreamlive/scope/blob/main/docs/api/sendreceive.md) |
+| VACE API | [docs/api/vace.md](https://github.com/daydreamlive/scope/blob/main/docs/api/vace.md) |
+| VACE Guide | [docs/vace.md](https://github.com/daydreamlive/scope/blob/main/docs/vace.md) |
+| LoRA Guide | [docs/lora.md](https://github.com/daydreamlive/scope/blob/main/docs/lora.md) |
+| Spout Guide | [docs/spout.md](https://github.com/daydreamlive/scope/blob/main/docs/spout.md) |
+| Parameters | [docs/api/parameters.md](https://github.com/daydreamlive/scope/blob/main/docs/api/parameters.md) |
+
+### Example Timelines (from README)
+
+Get started by importing example timeline files:
+
+| Pipeline | Example Link |
+|----------|--------------|
+| StreamDiffusionV2 | [examples/streamdiffusionv2](https://github.com/daydreamlive/scope#first-generation) |
+| LongLive | [examples/longlive](https://github.com/daydreamlive/scope#first-generation) |
+| RewardForcing | [examples/rewardforcing](https://github.com/daydreamlive/scope#first-generation) |
+| MemFlow | [examples/memflow](https://github.com/daydreamlive/scope#first-generation) |
+| Krea Realtime Video | [examples/krea](https://github.com/daydreamlive/scope#first-generation) |
 
 ---
 
@@ -304,12 +328,13 @@ VACE allows you to:
 
 ### Pipeline Compatibility
 
-| Pipeline | VACE Support |
-|----------|--------------|
-| **longlive** | **Yes** (Confirmed) |
-| krea-realtime-video | **No** |
-| streamdiffusionv2 | TBD |
-| reward-forcing | TBD |
+| Pipeline | VACE Support | Notes |
+|----------|--------------|-------|
+| **longlive** | **Yes** | Recommended for VACE workflows |
+| **reward-forcing** | **Yes** | Experimental |
+| **memflow** | **Yes** | Memory-efficient |
+| streamdiffusionv2 | Experimental | Quality is poor, under investigation |
+| krea-realtime-video | **No** | VACE not supported |
 
 **Important**: VACE controls are hidden in the UI when using pipelines that don't support it.
 
@@ -440,18 +465,25 @@ LoRA (Low-Rank Adaptation) adapters allow you to customize concepts and styles i
 | streamdiffusionv2 | Wan2.1-T2V-1.3B LoRAs |
 | longlive | Wan2.1-T2V-1.3B LoRAs |
 | reward-forcing | Wan2.1-T2V-1.3B LoRAs |
+| memflow | Wan2.1-T2V-1.3B LoRAs |
 | krea-realtime-video | Wan2.1-T2V-14B LoRAs |
 
 ### Recommended LoRAs
 
-**For streamdiffusionv2, longlive, reward-forcing (1.3B):**
-- [Arcane Jinx](https://civitai.com/)
-- [Genshin TCG](https://huggingface.co/)
+**For Wan2.1-T2V-1.3B pipelines (streamdiffusionv2, longlive, reward-forcing, memflow):**
 
-**For krea-realtime-video (14B):**
-- [Origami](https://huggingface.co/)
-- [Film Noir](https://huggingface.co/)
-- [Pixar](https://huggingface.co/Remade-AI/Pixar)
+| LoRA | Source | Link |
+|------|--------|------|
+| Arcane Jinx | CivitAI | [Model #1679582](https://civitai.com/models/1679582) |
+| Genshin TCG | HuggingFace | [Search HF](https://huggingface.co/models?search=genshin+wan) |
+
+**For Wan2.1-T2V-14B pipeline (krea-realtime-video):**
+
+| LoRA | Source | Link |
+|------|--------|------|
+| Pixar | HuggingFace | [Remade-AI/Pixar](https://huggingface.co/Remade-AI/Pixar) |
+| Origami | HuggingFace | [Search HF](https://huggingface.co/models?search=origami+wan+14b) |
+| Film Noir | HuggingFace | [Search HF](https://huggingface.co/models?search=film+noir+wan+14b) |
 
 ### Installing LoRAs
 

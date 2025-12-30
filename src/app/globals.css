@@ -2,42 +2,38 @@
 
 @theme {
   /*
-   * MetaDJ Scope - Visual System
-   * Design tokens aligned with MetaDJ Nexus (canonical reference).
-   * See: 1-system/1-context/1-knowledge/9-visual-assets/visual-identity-context-standards.md
+   * MetaDJ Scope - Extreme Glass-Neon System
+   * Canonical reference: MetaDJ Nexus
    */
 
-  /* Scope-inspired dark theme (cosmic canvas) */
-  --color-scope-bg: #0a0a0a;
-  --color-scope-surface: #1a1a1a;
-  --color-scope-elevated: #242424;
-  --color-scope-border: #2a2a2a;
-  --color-scope-accent: var(--color-scope-purple);
-  --color-scope-success: #22c55e;
-  --color-scope-warning: #eab308;
-  --color-scope-error: #ef4444;
+  /* Brand Colors (Primary Tier) - High Vibrance OKLCH */
+  --color-scope-purple: oklch(0.646 0.222 264.376);
+  /* Human wisdom */
+  --color-scope-cyan: oklch(0.6 0.118 184.704);
+  /* AI amplification */
+  --color-scope-magenta: oklch(0.702 0.295 328.3);
+  /* Transformation */
 
-  /*
-   * MetaDJ Brand Colors (Primary Tier)
-   * Canonical values from visual-identity-context-standards.md
-   * These trace the transformation arc: Purple -> Cyan -> Magenta
-   */
-  --color-scope-purple: oklch(0.646 0.222 264.376);   /* Human wisdom */
-  --color-scope-cyan: oklch(0.6 0.118 184.704);       /* AI amplification */
-  --color-scope-magenta: oklch(0.702 0.295 328.3);    /* Transformation */
+  /* Background/Neutral - No Black Endpoints Rule */
+  --color-scope-bg: #060918;
+  /* Ultra Deep Indigo */
+  --color-scope-surface: rgba(15, 20, 45, 0.45);
+  --color-scope-elevated: rgba(25, 30, 65, 0.65);
+  --color-scope-border: rgba(255, 255, 255, 0.08);
 
-  /* Secondary tier */
-  --color-scope-indigo: oklch(0.627 0.265 303.9);     /* Technical depth */
-  --color-scope-blue: oklch(0.59 0.21 255);           /* Infrastructure reliability */
+  /* Status Colors */
+  --color-scope-success: oklch(0.75 0.18 145);
+  --color-scope-warning: oklch(0.85 0.18 85);
+  --color-scope-error: oklch(0.65 0.25 25);
 
-  /* Background and foreground */
-  --color-background: #0a0a0a;
-  --color-foreground: #ededed;
+  /* Gradients */
+  --gradient-brand: linear-gradient(135deg, var(--color-scope-purple) 0%, var(--color-scope-cyan) 50%, var(--color-scope-magenta) 100%);
+  --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
 }
 
 :root {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --background: #060918;
+  --foreground: #f8fafc;
   --font-body: var(--font-poppins);
   --font-display: var(--font-cinzel);
   --font-mono: var(--font-jetbrains-mono);
@@ -47,6 +43,8 @@ body {
   color: var(--foreground);
   background: var(--background);
   font-family: var(--font-body), sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
 h1,
@@ -54,85 +52,142 @@ h2,
 h3,
 .font-display {
   font-family: var(--font-display), serif;
+  letter-spacing: 0.02em;
 }
 
-code,
-pre,
-.font-mono {
-  font-family: var(--font-mono), monospace;
-}
-
-/* Custom scrollbar for dark theme */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: #1a1a1a;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #3a3a3a;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #4a4a4a;
-}
-
-/* Video container styles */
-.video-container {
-  aspect-ratio: 1 / 1;
-  background: #1a1a1a;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-/* Webcam mirror effect */
-.webcam-mirror {
-  transform: scaleX(-1);
-}
-
-/*
- * Glass Morphism Utilities
- * Aligned with MetaDJ Nexus glass patterns.
- * Glass reveals infrastructure while keeping focus on content.
+/* 
+ * Advanced Glass-Neon Utilities
  */
-.glass {
-  background: rgba(26, 26, 26, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+
+@utility glass {
+  background: rgba(10, 14, 31, 0.4);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.glass-card {
-  background: rgba(36, 36, 36, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+@utility glass-radiant {
+  background: linear-gradient(135deg, rgba(15, 20, 45, 0.7) 0%, rgba(10, 14, 31, 0.6) 100%);
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.5),
+    0 0 40px rgba(139, 92, 246, 0.15),
+    inset 0 0 20px rgba(255, 255, 255, 0.02);
 }
 
-/* Brand gradient (transformation arc) */
-.gradient-brand {
-  background: linear-gradient(
-    135deg,
-    #8B5CF6 0%,
-    #06B6D4 50%,
-    #D946EF 100%
-  );
+@utility text-pop {
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.8)) drop-shadow(0 0 15px rgba(168, 85, 247, 0.4)) drop-shadow(0 0 40px rgba(139, 92, 246, 0.25));
 }
 
-/* Glow effects for amplification moments */
-.glow-cyan {
-  box-shadow: 0 0 20px rgba(6, 182, 212, 0.4);
+@utility chisel-gradient {
+  background: linear-gradient(to bottom, #ffffff 0%, #a5f3fc 50%, #06B6D4 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 15px rgba(6, 182, 212, 0.6));
 }
 
-.glow-purple {
-  box-shadow: 0 0 20px rgba(139, 92, 246, 0.4);
+@utility interactive-scale {
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  &:hover {
+    transform: scale(1.03) translateY(-4px);
+  }
+
+  &:active {
+    transform: scale(0.97);
+  }
 }
 
-.glow-magenta {
-  box-shadow: 0 0 20px rgba(217, 70, 239, 0.4);
+@utility transition-smooth {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Scrollbar */
+@utility custom-scrollbar {
+  &::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 99px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+}
+
+/* Animations */
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+
+  33% {
+    transform: translateY(-12px) rotate(1deg);
+  }
+
+  66% {
+    transform: translateY(4px) rotate(-0.5deg);
+  }
+}
+
+.animate-float {
+  animation: float 8s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+    filter: blur(60px);
+  }
+
+  50% {
+    opacity: 0.6;
+    transform: scale(1.1);
+    filter: blur(80px);
+  }
+}
+
+.glow-bg {
+  position: absolute;
+  width: 60vw;
+  height: 60vw;
+  border-radius: 50%;
+  z-index: -1;
+  pointer-events: none;
+  animation: pulse-glow 15s ease-in-out infinite;
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(1);
+    opacity: 0.4;
+  }
+
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}
+
+.energy-ripple {
+  position: absolute;
+  border: 2px solid var(--color-scope-cyan);
+  border-radius: 50%;
+  animation: ripple 2s infinite;
 }

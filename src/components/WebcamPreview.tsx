@@ -67,47 +67,51 @@ export function WebcamPreview({
   }, [stopWebcam]);
 
   return (
-    <div className="space-y-3">
-      <div className="video-container relative bg-black">
+    <div className="space-y-6">
+      <div className="relative group overflow-hidden rounded-2xl border border-white/5 bg-black shadow-2xl">
         <video
           ref={videoRef}
-          className="w-full h-full object-cover webcam-mirror"
+          className="w-full aspect-square object-cover webcam-mirror transition-all duration-700 hover:scale-105"
           playsInline
           muted
         />
 
+        {/* Dynamic Scanline Overlay */}
+        <div className="absolute inset-0 pointer-events-none z-10 bg-gradient-to-b from-transparent via-white/5 to-transparent opacity-20 pointer-events-none" />
+        <div className="absolute inset-0 pointer-events-none z-10 shadow-[inset_0_0_60px_rgba(0,0,0,0.8)]" />
+
         {!isActive && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center">
-              <div className="text-4xl mb-2">📷</div>
-              <p className="text-gray-400 text-sm">Webcam Off</p>
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-xl z-20">
+            <div className="text-center animate-float">
+              <div className="text-6xl mb-6 grayscale opacity-20">🎭</div>
+              <p className="text-white/20 text-[10px] font-black uppercase tracking-[0.5em]">Input Disabled</p>
             </div>
           </div>
         )}
       </div>
 
       {error && (
-        <div className="p-2 bg-scope-error/20 border border-scope-error rounded text-xs text-scope-error">
-          {error}
+        <div className="p-4 glass-radiant bg-red-950/20 border-red-500/30 rounded-2xl animate-bounce-subtle">
+          <p className="text-red-200 text-[10px] font-black uppercase tracking-widest">{error}</p>
         </div>
       )}
 
-      <div className="flex gap-2">
+      <div className="flex gap-3">
         {!isActive ? (
           <button
             type="button"
             onClick={startWebcam}
-            className="flex-1 py-2 bg-scope-accent hover:bg-scope-accent/80 rounded text-sm font-medium transition-colors"
+            className="flex-1 py-4 glass-radiant bg-scope-purple/20 hover:bg-scope-purple text-white/80 hover:text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.4em] transition-all duration-500 hover:scale-105 active:scale-95 shadow-xl hover:shadow-[0_0_30px_rgba(139,92,246,0.3)]"
           >
-            Start Webcam
+            Initiate Stream
           </button>
         ) : (
           <button
             type="button"
             onClick={stopWebcam}
-            className="flex-1 py-2 bg-gray-600 hover:bg-gray-500 rounded text-sm font-medium transition-colors"
+            className="flex-1 py-4 glass bg-white/5 hover:bg-white/10 border-white/5 rounded-2xl text-[10px] font-black uppercase tracking-[0.4em] text-white/20 hover:text-white transition-all duration-500 hover:scale-[0.98]"
           >
-            Stop Webcam
+            Kill Process
           </button>
         )}
       </div>

@@ -1,12 +1,26 @@
 # Daydream Scope Platform Reference
 
-**Last Modified**: 2025-12-27 14:00 EST
-**Source**: Official Daydream documentation (docs.daydream.live/scope)
+**Last Modified**: 2025-12-30 12:45 EST
+**Source**: [GitHub Repository](https://github.com/daydreamlive/scope) · [README](https://github.com/daydreamlive/scope/blob/main/README.md)
 **Status**: Canonical Reference
 
 ## Purpose
 
 Comprehensive platform documentation for Daydream Scope, extracted from official sources. This serves as the authoritative reference for Scope capabilities, deployment, and usage within the MetaDJ Scope project.
+
+### Official Source Links
+
+| Resource | Link |
+|----------|------|
+| **GitHub Repository** | https://github.com/daydreamlive/scope |
+| **README** | [README.md](https://github.com/daydreamlive/scope/blob/main/README.md) |
+| **Documentation** | [docs/](https://github.com/daydreamlive/scope/tree/main/docs) |
+| **LoRA Guide** | [docs/lora.md](https://github.com/daydreamlive/scope/blob/main/docs/lora.md) |
+| **VACE Guide** | [docs/vace.md](https://github.com/daydreamlive/scope/blob/main/docs/vace.md) |
+| **Spout Guide** | [docs/spout.md](https://github.com/daydreamlive/scope/blob/main/docs/spout.md) |
+| **Contributing** | [docs/contributing.md](https://github.com/daydreamlive/scope/blob/main/docs/contributing.md) |
+| **RunPod Template** | https://runpod.io/console/deploy?template=daydream-scope |
+| **Discord** | https://discord.com/invite/5sZu8xmn6U |
 
 ---
 
@@ -31,9 +45,11 @@ Scope supports three primary autoregressive video diffusion models:
 
 | Pipeline | Description | VACE Support | Min VRAM | Best For |
 |----------|-------------|--------------|----------|----------|
-| **StreamDiffusion V2** | Real-time video generation with streaming capabilities | TBD | 24GB | General-purpose real-time generation |
+| **StreamDiffusion V2** | Real-time video generation with streaming capabilities | Experimental | 24GB | General-purpose real-time generation |
 | **LongLive** | Extended generation for longer video sequences with consistent quality | **Yes** | 24GB | Identity-consistent avatars, character work |
 | **Krea Realtime** | Text-to-video with real-time streaming | **No** | 32GB (40GB recommended) | Photorealistic portraits |
+| **MemFlow** | Memory-efficient generation with temporal consistency | **Yes** | 24GB | Memory-constrained setups |
+| **Reward Forcing** | Reward-based alignment techniques | **Yes** | 24GB | Research and experimentation |
 
 ### Pipeline Details
 
@@ -65,7 +81,115 @@ Scope supports three primary autoregressive video diffusion models:
 #### Reward Forcing
 - **Output**: Experimental
 - **Description**: Uses reward-based alignment techniques
+- **VACE**: Supported
 - **Use Case**: Research and experimentation (not recommended for production)
+
+#### MemFlow
+- **Output**: Stylized generation with memory-based consistency
+- **VRAM**: 24GB minimum
+- **VACE**: Supported
+- **Use Case**: Memory-efficient generation with temporal consistency
+
+---
+
+## Codebase Architecture
+
+The Scope project follows a three-tier architecture with Python backend, React frontend, and optional Electron desktop app.
+
+### GitHub Codebase Links
+
+| Component | GitHub Link |
+|-----------|-------------|
+| **Python Backend** | [src/scope/](https://github.com/daydreamlive/scope/tree/main/src/scope) |
+| **Core/Pipelines** | [src/scope/core/pipelines/](https://github.com/daydreamlive/scope/tree/main/src/scope/core/pipelines) |
+| **Server (FastAPI)** | [src/scope/server/](https://github.com/daydreamlive/scope/tree/main/src/scope/server) |
+| **React Frontend** | [frontend/](https://github.com/daydreamlive/scope/tree/main/frontend) |
+| **Frontend Components** | [frontend/src/components/](https://github.com/daydreamlive/scope/tree/main/frontend/src/components) |
+| **Frontend Hooks** | [frontend/src/hooks/](https://github.com/daydreamlive/scope/tree/main/frontend/src/hooks) |
+| **Electron App** | [app/](https://github.com/daydreamlive/scope/tree/main/app) |
+| **pyproject.toml** | [pyproject.toml](https://github.com/daydreamlive/scope/blob/main/pyproject.toml) |
+| **CLAUDE.md** | [CLAUDE.md](https://github.com/daydreamlive/scope/blob/main/CLAUDE.md) |
+
+### Repository Structure
+
+```
+scope/
+├── src/scope/               # Python backend
+│   ├── core/                # Core functionality
+│   │   ├── pipelines/       # Pipeline implementations
+│   │   │   ├── longlive/
+│   │   │   ├── streamdiffusionv2/
+│   │   │   ├── krea_realtime_video/
+│   │   │   ├── reward_forcing/
+│   │   │   ├── memflow/
+│   │   │   ├── passthrough/
+│   │   │   └── wan2_1/      # Base Wan2.1 model
+│   │   ├── plugins/         # Plugin system
+│   │   └── prompts/         # Prompt management
+│   └── server/              # FastAPI server
+│       ├── app.py           # Main application
+│       ├── webrtc.py        # WebRTC streaming
+│       ├── pipeline_manager.py
+│       ├── frame_processor.py
+│       └── spout/           # Windows Spout integration
+├── frontend/                # React web UI
+│   └── src/
+│       ├── components/      # UI components
+│       ├── hooks/           # React hooks
+│       ├── pages/           # Page components
+│       └── types/           # TypeScript types
+├── app/                     # Electron desktop app (Windows)
+└── docs/                    # Documentation
+```
+
+### Key Backend Modules
+
+| Module | Description |
+|--------|-------------|
+| `app.py` | FastAPI main application, WebRTC integration, lifespan management |
+| `webrtc.py` | Session-based WebRTC streaming with automatic cleanup |
+| `pipeline_manager.py` | Pipeline lifecycle, model loading, parameter management |
+| `frame_processor.py` | Video frame processing, VACE integration |
+| `credentials.py` | TURN server credential handling (Cloudflare via HF_TOKEN) |
+| `schema.py` | Pydantic models for API validation |
+
+### Frontend Architecture
+
+| Component | Description |
+|-----------|-------------|
+| **InputAndControlsPanel** | Main control interface for prompts and settings |
+| **SettingsPanel** | Pipeline configuration and model parameters |
+| **PromptTimeline** | Timeline-based prompt editing and sequencing |
+| **LoRAManager** | LoRA adapter selection and scale management |
+| **VideoOutput** | WebRTC video rendering display |
+
+### Custom Hooks
+
+| Hook | Purpose |
+|------|---------|
+| `useWebRTC` | Manages peer connections and signaling |
+| `useStreamState` | Comprehensive streaming session state |
+| `usePipeline` | Individual pipeline processing logic |
+| `useTimelinePlayback` | Timeline position and playback control |
+| `useVideoSource` | Video source selection and configuration |
+| `usePromptManager` | Prompt creation and retrieval |
+
+### Technology Stack
+
+**Backend (Python 3.10+)**:
+- FastAPI + aiortc for WebRTC
+- PyTorch 2.8.0 + torchvision 0.23.0
+- Diffusers >= 0.31.0, Transformers >= 4.49.0
+- flash-attn, sageattention for optimization
+- PEFT for LoRA runtime support
+
+**Frontend**:
+- React + TypeScript + Vite
+- Tailwind CSS + Radix UI
+- Relative API URLs for deployment flexibility
+
+**Desktop App** (Windows only):
+- Electron with Vite bundling
 
 ---
 

@@ -398,18 +398,24 @@ export function AvatarStudio({ onConnectionChange }: AvatarStudioProps) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-gray-400">Connecting to Scope API...</div>
+      <div className="flex flex-col items-center justify-center h-96 relative overflow-hidden">
+        <div className="text-white/20 text-7xl mb-8 animate-pulse text-pop grayscale">🎭</div>
+        <div className="text-white/40 text-[10px] font-black uppercase tracking-[0.6em] animate-pulse">Synchronizing Neural Workspace...</div>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* Left Column: Input */}
-      <div className="space-y-4">
-        <div className="bg-scope-surface rounded-lg p-4">
-          <h2 className="text-lg font-semibold mb-4">Input</h2>
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      {/* Left Column: Input (Video & Identity) */}
+      <div className="lg:col-span-1 space-y-8">
+        <div className="glass rounded-[2.5rem] p-8 border-white/5 shadow-2xl relative overflow-hidden group interactive-scale">
+          <div className="absolute inset-0 bg-scope-purple/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+
+          <h2 className="text-xs font-black uppercase tracking-[0.4em] text-white/30 mb-8 flex items-center gap-3">
+            <span className="w-2 h-2 rounded-full bg-scope-purple animate-pulse" />
+            Neural Ingest
+          </h2>
 
           {/* Webcam Preview */}
           <WebcamPreview
@@ -419,136 +425,170 @@ export function AvatarStudio({ onConnectionChange }: AvatarStudioProps) {
             preferredHeight={DEFAULT_GENERATION_PARAMS.height ?? 512}
             preferredFrameRate={15}
           />
-          <p className="mt-2 text-xs text-gray-500">
-            Webcam: {webcamStream ? "Ready" : "Off"}
-          </p>
+          <div className="mt-6 flex items-center justify-between px-2">
+            <span className="text-[10px] font-black uppercase tracking-widest text-white/20">Protocol: Video-to-Video</span>
+            <span className={`text-[10px] font-bold ${webcamStream ? 'text-scope-purple' : 'text-white/10'}`}>
+              {webcamStream ? "LOCKED" : "STNBY"}
+            </span>
+          </div>
         </div>
 
         {/* Reference Image */}
-        <div className="bg-scope-surface rounded-lg p-4">
-          <h2 className="text-lg font-semibold mb-4">Reference Image (VACE)</h2>
+        <div className="glass rounded-[2.5rem] p-8 border-white/5 shadow-2xl relative overflow-hidden group interactive-scale">
+          <div className="absolute inset-0 bg-scope-magenta/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+
+          <h2 className="text-xs font-black uppercase tracking-[0.4em] text-white/30 mb-8 flex items-center gap-3">
+            <span className="w-2 h-2 rounded-full bg-scope-magenta" />
+            VACE Parameter
+          </h2>
           <ReferenceImage
             src={referenceImage}
             onImageChange={setReferenceImage}
           />
 
           {/* VACE Scale */}
-          <div className="mt-4">
-            <label className="block text-sm text-gray-400 mb-2">
-              VACE Scale: {vaceScale.toFixed(2)}
-            </label>
-            <input
-              type="range"
-              min="0"
-              max="2"
-              step="0.1"
-              value={vaceScale}
-              onChange={(e) => setVaceScale(parseFloat(e.target.value))}
-              className="w-full"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Higher = stronger identity preservation (recommended: 1.5-2.0)
+          <div className="mt-8 space-y-4">
+            <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
+              <span className="text-white/40">Identity Lock</span>
+              <span className="text-scope-magenta text-pop">{vaceScale.toFixed(2)}x</span>
+            </div>
+            <div className="relative h-2">
+              <input
+                type="range"
+                min="0"
+                max="2"
+                step="0.1"
+                value={vaceScale}
+                onChange={(e) => setVaceScale(parseFloat(e.target.value))}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+              />
+              <div className="absolute inset-0 bg-white/5 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-scope-purple to-scope-magenta rounded-full"
+                  style={{ width: `${(vaceScale / 2) * 100}%` }}
+                />
+              </div>
+            </div>
+            <p className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em] leading-relaxed">
+              Elevated values optimize character consistency across frames.
             </p>
           </div>
         </div>
       </div>
 
-      {/* Center Column: Output */}
-      <div className="bg-scope-surface rounded-lg p-4">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Output</h2>
-          <span className="text-xs text-gray-500">
-            {connectionStatus || "Idle"}
-          </span>
-        </div>
-
-        {error && (
-          <div className="mb-4 p-3 bg-scope-error/20 border border-scope-error rounded-lg text-sm">
-            {error}
+      {/* Center Column: Output (Visual Projection) */}
+      <div className="lg:col-span-2">
+        <section className="glass-radiant rounded-[3.5rem] p-10 border-white/10 shadow-[0_0_80px_rgba(168,85,247,0.1)] h-full relative overflow-hidden">
+          <div className="flex items-center justify-between mb-8 relative z-10">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-xl font-bold text-white uppercase tracking-tighter text-pop">Avatar Projection</h2>
+              <span className="text-[9px] font-black uppercase tracking-[0.3em] text-scope-purple opacity-60">Neural Workspace v2.0</span>
+            </div>
+            <div className="flex items-center gap-6">
+              <div className={`px-4 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest transition-all duration-500 ${isStreaming ? 'border-scope-magenta text-scope-magenta bg-scope-magenta/5 shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'border-white/5 text-white/20'}`}>
+                {connectionStatus || "Standby"}
+              </div>
+            </div>
           </div>
-        )}
 
-        <OutputPreview isStreaming={isStreaming} stream={outputStream} />
+          <div className="relative group overflow-hidden rounded-[2.5rem] border border-white/5 bg-black/60 shadow-inner">
+            {/* Inner Depth Glow */}
+            <div className="absolute inset-0 z-10 pointer-events-none shadow-[inset_0_0_120px_rgba(0,0,0,0.9)]" />
 
-        {/* Stream Controls */}
-        <div className="mt-4 flex gap-2">
-          {!isStreaming ? (
-            <button
-              type="button"
-              onClick={handleStartStream}
-              disabled={isConnecting || !webcamStream}
-              className="flex-1 py-3 bg-scope-accent hover:bg-scope-accent/80 disabled:bg-gray-600 disabled:cursor-not-allowed rounded-lg font-medium transition-colors"
-            >
-              {isConnecting ? "Connecting..." : "Start Generation"}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={handleStopStream}
-              className="flex-1 py-3 bg-scope-error hover:bg-scope-error/80 rounded-lg font-medium transition-colors"
-            >
-              Stop
-            </button>
-          )}
-        </div>
-        {!webcamStream && (
-          <p className="mt-2 text-xs text-gray-500">
-            Start the webcam to enable generation.
-          </p>
-        )}
+            {error && (
+              <div className="absolute top-4 inset-x-4 z-30 p-4 glass-radiant bg-red-950/40 border-red-500/30 rounded-2xl animate-bounce-subtle">
+                <p className="text-red-200 text-[10px] font-black uppercase tracking-[0.2em]">{error}</p>
+              </div>
+            )}
 
-        <div className="mt-3 flex justify-between text-xs text-gray-500">
-          <span>Status: {isStreaming ? "Running" : "Idle"}</span>
-          <span>
-            {DEFAULT_GENERATION_PARAMS.width}x{DEFAULT_GENERATION_PARAMS.height}
-          </span>
-        </div>
+            <OutputPreview isStreaming={isStreaming} stream={outputStream} />
+          </div>
+
+          {/* Stream Controls */}
+          <div className="mt-10 flex flex-col gap-6 relative z-10">
+            <div className="flex gap-4">
+              {!isStreaming ? (
+                <button
+                  type="button"
+                  onClick={handleStartStream}
+                  disabled={isConnecting || !webcamStream}
+                  className="flex-1 py-5 glass-radiant rounded-full font-black uppercase tracking-[0.4em] text-[11px] text-white border-white/10 hover:border-scope-purple/40 hover:scale-[1.03] active:scale-95 transition-all duration-500 hover:shadow-[0_0_40px_rgba(168,85,247,0.3)] disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  {isConnecting ? "Negotiating Bridge..." : "Initiate Neural Bridge"}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleStopStream}
+                  className="flex-1 py-5 glass-radiant bg-red-950/40 border-red-500/30 hover:bg-red-500/60 rounded-full font-black uppercase tracking-[0.4em] text-[11px] text-red-100 transition-all duration-500 hover:scale-[1.03] active:scale-95"
+                >
+                  Terminate Bridge
+                </button>
+              )}
+            </div>
+
+            <div className="flex justify-between items-center px-4">
+              <div className="flex items-center gap-3">
+                <div className={`w-1.5 h-1.5 rounded-full ${isStreaming ? 'bg-scope-magenta animate-pulse shadow-[0_0_8px_rgba(168,85,247,0.8)]' : 'bg-white/10'}`} />
+                <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/20">Protocol: {isStreaming ? "Active Projection" : "Ready"}</span>
+              </div>
+              <span className="text-[9px] font-black uppercase tracking-[0.4em] text-white/20">
+                Res: {DEFAULT_GENERATION_PARAMS.width}x{DEFAULT_GENERATION_PARAMS.height}
+              </span>
+            </div>
+          </div>
+        </section>
       </div>
 
-      {/* Right Column: Controls */}
-      <div className="space-y-4">
-        <div className="bg-scope-surface rounded-lg p-4">
-          <h2 className="text-lg font-semibold mb-4">Prompt</h2>
+      {/* Right Column: Controls (Prompt & Style) */}
+      <div className="lg:col-span-1 space-y-8">
+        <div className="glass rounded-[2.5rem] p-8 border-white/5 shadow-2xl relative overflow-hidden group interactive-scale">
+          <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+
+          <h2 className="text-xs font-black uppercase tracking-[0.4em] text-white/30 mb-8 flex items-center gap-3">
+            <span className="w-2 h-2 rounded-full bg-white/20" />
+            Style Prompt
+          </h2>
           <PromptEditor
             value={prompt}
             onChange={setPrompt}
             styleModifiers={DEFAULT_AVATAR_CONFIG.styleModifiers}
           />
-          <div className="mt-4 flex flex-col gap-2">
+          <div className="mt-8 pt-6 border-t border-white/5 flex flex-col gap-4">
             <button
               type="button"
               onClick={handleApplyChanges}
               disabled={!isStreaming || isConnecting}
-              className="py-2 px-3 bg-scope-cyan text-black hover:bg-scope-cyan/80 disabled:bg-gray-700 disabled:text-gray-400 rounded text-sm font-medium transition-colors"
+              className="py-4 px-6 glass-radiant bg-scope-cyan/20 hover:bg-scope-cyan text-cyan-100 hover:text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.4em] transition-all duration-500 disabled:opacity-20 disabled:grayscale"
             >
-              Apply Updates
+              Update Neural Weights
             </button>
-            <p className="text-xs text-gray-500">
-              Sends prompt and VACE changes to the active stream.
+            <p className="text-[9px] font-bold text-white/20 uppercase tracking-widest leading-relaxed text-center">
+              Re-synchronize prompt and <br /> identity lock in real-time.
             </p>
           </div>
         </div>
 
-        {/* Quick Info */}
-        <div className="bg-scope-surface rounded-lg p-4">
-          <h2 className="text-lg font-semibold mb-4">Settings</h2>
-          <div className="space-y-2 text-sm text-gray-400">
-            <div className="flex justify-between">
-              <span>Resolution</span>
-              <span>{DEFAULT_GENERATION_PARAMS.width}x{DEFAULT_GENERATION_PARAMS.height}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Steps</span>
-              <span>{DEFAULT_GENERATION_PARAMS.numInferenceSteps}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Guidance</span>
-              <span>{DEFAULT_GENERATION_PARAMS.guidanceScale}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Seed</span>
-              <span>{DEFAULT_GENERATION_PARAMS.seed}</span>
-            </div>
+        {/* Studio Diagnostics */}
+        <div className="glass rounded-[2.5rem] p-8 border-white/5 relative overflow-hidden group interactive-scale">
+          <div className="absolute inset-0 bg-scope-magenta/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+
+          <h2 className="text-xs font-black uppercase tracking-[0.4em] text-white/30 mb-8 flex items-center gap-3">
+            <span className="w-2 h-2 rounded-full bg-scope-magenta/40" />
+            Diagnostics
+          </h2>
+          <div className="space-y-4">
+            {[
+              { label: "Pipeline", value: "LONG-LIVE" },
+              { label: "Steps", value: DEFAULT_GENERATION_PARAMS.numInferenceSteps },
+              { label: "Guidance", value: DEFAULT_GENERATION_PARAMS.guidanceScale },
+              { label: "Latents", value: "STABLE-FP16" }
+            ].map((stat, i) => (
+              <div key={i} className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
+                <span className="text-white/20">{stat.label}</span>
+                <span className="text-white/60">{stat.value}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>

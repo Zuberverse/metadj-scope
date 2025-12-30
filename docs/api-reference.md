@@ -1,12 +1,24 @@
 # Scope Server API Reference
 
-**Last Modified**: 2025-12-27 14:00 EST
-**Source**: GitHub repository (github.com/daydreamlive/scope/docs)
+**Last Modified**: 2025-12-30 12:45 EST
+**Source**: [GitHub Repository](https://github.com/daydreamlive/scope) · [Official Docs](https://github.com/daydreamlive/scope/tree/main/docs)
 **Status**: Canonical Reference
 
 ## Purpose
 
 Complete API documentation for the Daydream Scope server, extracted from official GitHub documentation. This covers all endpoints, workflows, and integration patterns.
+
+### Official Source Links
+
+| Topic | GitHub Link |
+|-------|-------------|
+| Server API | [docs/api/](https://github.com/daydreamlive/scope/tree/main/docs/api) |
+| Pipeline Loading | [docs/api/load.md](https://github.com/daydreamlive/scope/blob/main/docs/api/load.md) |
+| Parameters | [docs/api/parameters.md](https://github.com/daydreamlive/scope/blob/main/docs/api/parameters.md) |
+| Receive Video | [docs/api/receive.md](https://github.com/daydreamlive/scope/blob/main/docs/api/receive.md) |
+| Send & Receive | [docs/api/sendreceive.md](https://github.com/daydreamlive/scope/blob/main/docs/api/sendreceive.md) |
+| VACE API | [docs/api/vace.md](https://github.com/daydreamlive/scope/blob/main/docs/api/vace.md) |
+| Server Setup | [docs/server.md](https://github.com/daydreamlive/scope/blob/main/docs/server.md) |
 
 ---
 
@@ -544,6 +556,201 @@ export HF_TOKEN=your_huggingface_token
 ```
 
 If no TURN credentials are configured, the server falls back to Google's public STUN server, which works for direct connections but may not work behind strict firewalls.
+
+---
+
+## VACE (Video All-In-One Creation and Editing)
+
+> **Official Docs**: [docs/api/vace.md](https://github.com/daydreamlive/scope/blob/main/docs/api/vace.md) · [docs/vace.md](https://github.com/daydreamlive/scope/blob/main/docs/vace.md)
+
+VACE enables guiding generation using reference images and control videos.
+
+### Capabilities
+
+| Feature | Description |
+|---------|-------------|
+| **Reference-to-Video (R2V)** | Use reference images to guide generation style/character |
+| **Video-to-Video (VACE V2V)** | Use control videos (depth, pose, scribble) to guide generation |
+| **Animate Anything** | Combine R2V + VACE V2V for character + motion control |
+
+### Pipeline Compatibility
+
+VACE is supported on Wan2.1 1.3B pipelines:
+- `longlive` (recommended)
+- `reward-forcing`
+- `memflow`
+- `streamdiffusionv2` (experimental, lower quality)
+
+### Uploading Reference Images
+
+```javascript
+async function uploadReferenceImage(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const filename = encodeURIComponent(file.name);
+
+  const response = await fetch(
+    `http://localhost:8000/api/v1/assets?filename=${filename}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/octet-stream" },
+      body: arrayBuffer
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`Upload failed: ${response.statusText}`);
+  }
+
+  return await response.json();
+  // Returns: { path: "/path/to/assets/image.png", ... }
+}
+```
+
+### Setting Reference Images
+
+**Via Initial Parameters (when starting WebRTC):**
+```javascript
+const response = await fetch("http://localhost:8000/api/v1/webrtc/offer", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    sdp: offer.sdp,
+    type: offer.type,
+    initialParameters: {
+      prompts: [{ text: "A person walking in a forest", weight: 1.0 }],
+      vace_ref_images: ["/path/to/reference.png"],
+      vace_context_scale: 1.0
+    }
+  })
+});
+```
+
+**Via Data Channel (during streaming):**
+```javascript
+// Set new reference image
+dataChannel.send(JSON.stringify({
+  vace_ref_images: ["/path/to/new_reference.png"],
+  vace_context_scale: 1.0
+}));
+
+// Multiple reference images
+dataChannel.send(JSON.stringify({
+  vace_ref_images: [
+    "/path/to/style_ref.png",
+    "/path/to/character_ref.png"
+  ],
+  vace_context_scale: 1.2
+}));
+
+// Clear reference images
+dataChannel.send(JSON.stringify({
+  vace_ref_images: []
+}));
+```
+
+### Context Scale Reference
+
+| Scale | Effect |
+|-------|--------|
+| 0.0 | No reference influence (pure text-to-video) |
+| 0.5 | Subtle influence, more creative freedom |
+| 1.0 | Balanced influence (default) |
+| 1.5 | Strong influence, closer to reference |
+| 2.0 | Maximum influence, may reduce diversity |
+
+### Listing Available Assets
+
+```javascript
+async function listAssets(type = "image") {
+  const response = await fetch(`http://localhost:8000/api/v1/assets?type=${type}`);
+  return await response.json();
+}
+
+const { assets } = await listAssets("image");
+// [{ name: "ref1", path: "/path/to/ref1.png", ... }, ...]
+```
+
+---
+
+## LoRA Configuration
+
+> **Official Docs**: [docs/lora.md](https://github.com/daydreamlive/scope/blob/main/docs/lora.md)
+
+### Compatibility
+
+| Pipeline | LoRA Compatibility |
+|----------|-------------------|
+| `longlive` | Wan2.1-T2V-1.3B |
+| `streamdiffusionv2` | Wan2.1-T2V-1.3B |
+| `reward-forcing` | Wan2.1-T2V-1.3B |
+| `memflow` | Wan2.1-T2V-1.3B |
+| `krea-realtime-video` | Wan2.1-T2V-14B |
+
+### Storage Location
+
+LoRA files should be placed in: `~/.daydream-scope/models/lora/`
+
+### Loading LoRAs at Pipeline Load
+
+```javascript
+await loadPipeline("longlive", {
+  loras: [
+    { path: "/path/to/style.safetensors", scale: 0.8 },
+    { path: "/path/to/character.safetensors", scale: 1.0 }
+  ],
+  // permanent_merge: Maximum FPS, no runtime updates
+  // runtime_peft: Allows runtime scale updates, lower FPS
+  lora_merge_mode: "runtime_peft"
+});
+```
+
+### Downloading LoRAs
+
+**From HuggingFace:**
+```bash
+cd ~/.daydream-scope/models/lora
+wget -O pixar.safetensors https://huggingface.co/Remade-AI/Pixar/resolve/main/pixar_10_epochs.safetensors?download=true
+```
+
+**From CivitAI (requires API key):**
+```bash
+cd ~/.daydream-scope/models/lora
+wget -O arcane-jinx.safetensors "https://civitai.com/api/download/models/1679582?type=Model&format=SafeTensor&token=<YOUR_API_KEY>"
+```
+
+---
+
+## Spout Integration (Windows Only)
+
+> **Official Docs**: [docs/spout.md](https://github.com/daydreamlive/scope/blob/main/docs/spout.md)
+
+Spout enables near-zero latency video sharing with local applications on Windows.
+
+> **Note**: Spout is not available on RunPod (Linux) or macOS.
+
+### Spout Sender
+
+Send video to other applications:
+```javascript
+sendParameters({
+  spout_sender: { enabled: true, name: "ScopeOutput" }
+});
+```
+
+### Spout Receiver
+
+Receive video from other applications:
+```javascript
+sendParameters({
+  spout_receiver: { enabled: true, name: "ExternalApp" }
+});
+```
+
+### Compatible Applications
+
+- TouchDesigner (Syphon Spout In/Out TOPs)
+- Unity (KlakSpout plugin)
+- Blender (TextureSharing add-on)
 
 ---
 

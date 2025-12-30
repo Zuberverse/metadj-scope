@@ -1,6 +1,6 @@
 # MetaDJ Scope — Project Overview
 
-**Last Modified**: 2025-12-30 16:52 EST
+**Last Modified**: 2025-12-30 17:31 EST
 
 MetaDJ Scope explores the intersection of music and AI-generated visuals, transforming how we experience sound through real-time visual storytelling. Built for the Daydream Scope Track hackathon, this project represents an early step toward a larger vision: creating immersive, personalized visual experiences that respond to and enhance the music we love.
 
@@ -16,7 +16,7 @@ For the hackathon, we're concentrating on **Soundscape**—a music-reactive visu
 
 The MVP is designed for **private, local use**—a personal creative tool for exploring and experimenting with audio-visual possibilities rather than a public-facing application.
 
-**Soundscape** and **Avatar Studio** now run in the custom Next.js app, with a home focus selector that lets users choose which experience to foreground. Avatar Studio ingests webcam video via WebRTC (video-to-video mode). The native Scope UI remains a fallback for troubleshooting.
+**Soundscape** and **Avatar Studio** each have dedicated pages in the custom Next.js app (`/soundscape` and `/avatar`). The home page (`/`) serves as a landing with tiles linking to each experience. Avatar Studio ingests webcam video via WebRTC (video-to-video mode), supports Apply Updates over the data channel, and auto-reconnects on drops (3 attempts). The native Scope UI remains a fallback for troubleshooting.
 
 ## Key Features (Status)
 

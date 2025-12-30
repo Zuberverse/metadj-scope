@@ -1,163 +1,103 @@
-"use client";
+/**
+ * MetaDJ Scope - Navigation Hub
+ * Clean navigation to immersive experiences
+ */
 
-import { useState } from "react";
-import dynamic from "next/dynamic";
-import { ConnectionStatus } from "@/components/ConnectionStatus";
+import Link from "next/link";
 
-const SoundscapeStudio = dynamic(
-  () => import("@/components/soundscape").then((mod) => mod.SoundscapeStudio),
-  {
-    ssr: false,
-    loading: () => <StudioLoading label="Soundscape" />,
-  }
-);
+type ExperienceMode = "soundscape" | "avatar";
 
-const AvatarStudio = dynamic(
-  () => import("@/components/AvatarStudio").then((mod) => mod.AvatarStudio),
-  {
-    ssr: false,
-    loading: () => <StudioLoading label="Avatar Studio" />,
-  }
-);
-
-type FocusMode = "soundscape" | "avatar";
-
-function StudioLoading({ label }: { label: string }) {
-  return (
-    <div className="flex items-center justify-center min-h-[240px] text-sm text-gray-400">
-      Loading {label}...
-    </div>
-  );
-}
-
-const MODE_DETAILS: Record<
-  FocusMode,
-  { title: string; subtitle: string; status: string; icon: string }
+const EXPERIENCES: Record<
+  ExperienceMode,
+  { title: string; subtitle: string; status: string; color: "cyan" | "purple"; href: string }
 > = {
   soundscape: {
     title: "Soundscape",
-    subtitle: "Music-reactive visual generation",
+    subtitle: "Music-reactive AI visual generation",
     status: "Active MVP",
-    icon: "S",
+    color: "cyan",
+    href: "/soundscape",
   },
   avatar: {
     title: "Avatar Studio",
-    subtitle: "MetaDJ avatar generation + VACE",
+    subtitle: "MetaDJ avatar generation with VACE identity lock",
     status: "Active MVP",
-    icon: "A",
+    color: "purple",
+    href: "/avatar",
   },
 };
 
 export default function Home() {
-  const [focus, setFocus] = useState<FocusMode>("soundscape");
-  const [avatarConnected, setAvatarConnected] = useState(false);
-  const [soundscapeConnected, setSoundscapeConnected] = useState(false);
-
-  const focusDetails = MODE_DETAILS[focus];
-
   return (
-    <main className="min-h-screen p-4 md:p-10">
+    <main className="min-h-screen flex flex-col items-center justify-center p-4">
       {/* Header */}
-      <header className="mb-10">
-        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-semibold font-display">
-              MetaDJ Scope
-            </h1>
-            <p className="text-gray-400 text-sm md:text-base">
-              Choose your focus: audio-reactive visuals or the MetaDJ avatar engine.
-            </p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div>
-              <p className="text-xs text-gray-500 mb-1">Avatar Studio</p>
-              <ConnectionStatus
-                isConnected={avatarConnected}
-                apiUrl={process.env.NEXT_PUBLIC_SCOPE_API_URL || "Not configured"}
-              />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500 mb-1">Soundscape</p>
-              <ConnectionStatus
-                isConnected={soundscapeConnected}
-                apiUrl={process.env.NEXT_PUBLIC_SCOPE_API_URL || "Not configured"}
-              />
-            </div>
-          </div>
-        </div>
+      <header className="text-center mb-12">
+        <h1 className="text-4xl md:text-5xl font-bold font-display mb-3 tracking-tight">
+          MetaDJ Scope
+        </h1>
+        <p className="text-gray-400 text-base md:text-lg">
+          Real-time AI video generation
+        </p>
       </header>
 
-      {/* Focus Selector */}
-      <section aria-label="Choose a focus area" className="mb-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {(Object.keys(MODE_DETAILS) as FocusMode[]).map((mode) => {
-            const details = MODE_DETAILS[mode];
-            const isActive = focus === mode;
+      {/* Experience Cards - Navigation Only */}
+      <section aria-label="Choose an experience" className="w-full max-w-4xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {(Object.keys(EXPERIENCES) as ExperienceMode[]).map((mode) => {
+            const exp = EXPERIENCES[mode];
+            const isCyan = exp.color === "cyan";
+            const accentText = isCyan ? "text-scope-cyan" : "text-scope-purple";
+            const hoverBorder = isCyan
+              ? "hover:border-scope-cyan/60"
+              : "hover:border-scope-purple/60";
+            const hoverGlow = isCyan
+              ? "hover:shadow-[0_0_40px_rgba(6,182,212,0.15)]"
+              : "hover:shadow-[0_0_40px_rgba(168,85,247,0.15)]";
+
             return (
-              <button
+              <Link
                 key={mode}
-                type="button"
-                onClick={() => setFocus(mode)}
-                aria-pressed={isActive}
+                href={exp.href}
                 className={`
-                  aspect-square w-full rounded-2xl border transition-all text-left p-6 md:p-8
-                  ${isActive
-                    ? "border-scope-cyan bg-scope-elevated/80 shadow-xl shadow-scope-cyan/10"
-                    : "border-scope-border bg-scope-surface hover:border-scope-purple/60 hover:shadow-lg"}
+                  group relative aspect-[16/10] w-full rounded-2xl border border-white/10
+                  bg-scope-surface/50 backdrop-blur-sm
+                  transition-all duration-300 text-left p-6 md:p-8
+                  flex flex-col justify-between overflow-hidden
+                  ${hoverBorder} ${hoverGlow} hover:bg-scope-elevated/40
                 `}
               >
-                <div className="flex items-center justify-between mb-6">
-                  <span className="text-4xl">{details.icon}</span>
-                  <span
-                    className={`text-xs uppercase tracking-wider px-3 py-1 rounded-full ${
-                      isActive
-                        ? "bg-scope-cyan text-black"
-                        : "bg-scope-border text-gray-400"
-                    }`}
-                  >
-                    {details.status}
-                  </span>
+                {/* Background accent */}
+                <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 ${isCyan ? "bg-gradient-to-br from-scope-cyan/5 to-transparent" : "bg-gradient-to-br from-scope-purple/5 to-transparent"}`} />
+
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className={`text-4xl md:text-5xl font-display font-bold ${accentText}`}>
+                      {mode === "soundscape" ? "S" : "A"}
+                    </span>
+                    <span className="text-[10px] uppercase tracking-wider px-3 py-1 rounded-full bg-white/5 text-gray-400 border border-white/5">
+                      {exp.status}
+                    </span>
+                  </div>
+                  <h2 className="text-xl md:text-2xl font-semibold font-display mb-1">
+                    {exp.title}
+                  </h2>
+                  <p className="text-gray-400 text-sm">
+                    {exp.subtitle}
+                  </p>
                 </div>
-                <h2 className="text-2xl font-semibold font-display mb-2">
-                  {details.title}
-                </h2>
-                <p className="text-gray-400 text-sm md:text-base mb-6">
-                  {details.subtitle}
-                </p>
-                <div className="flex items-center gap-2 text-sm text-gray-300">
-                  <span className="inline-flex h-2 w-2 rounded-full bg-scope-purple" />
-                  <span>{isActive ? "Focused" : "Click to focus"}</span>
+                <div className="relative z-10 flex items-center gap-2 text-sm text-gray-500 group-hover:text-white/70 transition-colors">
+                  <span>Launch</span>
+                  <span className="transition-transform group-hover:translate-x-1">→</span>
                 </div>
-              </button>
+              </Link>
             );
           })}
         </div>
       </section>
 
-      {/* Focused Experience */}
-      <section aria-live="polite">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <p className="text-xs text-gray-500 uppercase tracking-widest">
-              Focus Mode
-            </p>
-            <h2 className="text-2xl md:text-3xl font-semibold font-display">
-              {focusDetails.title}
-            </h2>
-          </div>
-          <p className="text-sm text-gray-400">{focusDetails.subtitle}</p>
-        </div>
-
-        {focus === "soundscape" ? (
-          <SoundscapeStudio onConnectionChange={setSoundscapeConnected} />
-        ) : (
-          <AvatarStudio onConnectionChange={setAvatarConnected} />
-        )}
-      </section>
-
       {/* Footer */}
-      <footer className="mt-12 text-center text-gray-500 text-sm">
-        <p>Daydream Scope Track Hackathon | Dec 2024 - Jan 2025</p>
+      <footer className="mt-12 text-center text-gray-600 text-xs">
+        <p>Daydream Scope Track Hackathon</p>
       </footer>
     </main>
   );

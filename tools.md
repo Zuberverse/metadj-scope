@@ -1,6 +1,6 @@
 # Tools - MetaDJ Scope
 
-**Last Modified**: 2025-12-30 10:48 EST
+**Last Modified**: 2025-12-30 17:31 EST
 **Status**: Draft
 
 ## Purpose
@@ -67,7 +67,8 @@ Track tools, services, and integrations for the Daydream Scope hackathon project
 
 ### Scope Control UI (Current)
 - Next.js 16 + TypeScript + Tailwind 4
-- Home focus selector for Soundscape + Avatar Studio
+- Dedicated pages: Home (`/`), Soundscape (`/soundscape`), Avatar (`/avatar`)
+- Vitest + jsdom for UI regression tests
 
 ### Alternative Stacks (Post-MVP)
 - Unity + Scope (if 3D compositing is required)

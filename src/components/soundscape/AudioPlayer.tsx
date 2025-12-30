@@ -23,12 +23,14 @@ interface AudioPlayerProps {
   onAudioElement: (element: HTMLAudioElement | null) => void;
   onPlayStateChange: (isPlaying: boolean) => void;
   disabled?: boolean;
+  compact?: boolean;
 }
 
 export function AudioPlayer({
   onAudioElement,
   onPlayStateChange,
   disabled = false,
+  compact = false,
 }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
@@ -324,83 +326,122 @@ export function AudioPlayer({
   const canPlay =
     (mode === "demo" || mode === "mic" || (mode === "upload" && audioSrc)) && !uploadError;
 
+  // Compact mode for dock
+  if (compact) {
+    return (
+      <div className="flex items-center gap-3">
+        {/* Mode buttons */}
+        <div className="flex gap-1">
+          {(["demo", "upload", "mic"] as AudioMode[]).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => handleModeChange(m)}
+              disabled={disabled}
+              className={`
+                px-2 py-1 rounded text-[9px] font-bold uppercase transition-all
+                ${mode === m ? "bg-scope-cyan text-black" : "bg-white/10 text-white/50 hover:bg-white/20"}
+              `}
+            >
+              {m === "demo" ? "🎵" : m === "upload" ? "📁" : "🎤"}
+            </button>
+          ))}
+        </div>
+
+        {/* Play/Pause */}
+        {canPlay && (
+          <button
+            type="button"
+            onClick={isPlaying ? handlePause : handlePlay}
+            disabled={disabled}
+            className="w-8 h-8 rounded-full bg-scope-purple hover:bg-scope-purple/80 text-white flex items-center justify-center text-sm transition-all"
+          >
+            {isPlaying ? "⏸" : "▶"}
+          </button>
+        )}
+
+        {/* Track info */}
+        <div className="flex-1 min-w-0">
+          <p className="text-xs text-white truncate">{fileName || "No audio"}</p>
+          {mode !== "mic" && duration > 0 && (
+            <p className="text-[10px] text-gray-500">{formatTime(currentTime)} / {formatTime(duration)}</p>
+          )}
+        </div>
+
+        {/* Hidden audio element */}
+        <audio
+          ref={audioRef}
+          src={mode !== "mic" ? audioSrc || undefined : undefined}
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleLoadedMetadata}
+          onEnded={handleEnded}
+          preload="metadata"
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* Mode Selector */}
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => handleModeChange("demo")}
-          disabled={disabled}
-          className={`
-            flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all
-            ${mode === "demo"
-              ? "bg-scope-purple text-white"
-              : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white"}
-            ${disabled ? "opacity-50 cursor-not-allowed" : ""}
-          `}
-        >
-          🎵 Demo
-        </button>
-        <button
-          type="button"
-          onClick={() => handleModeChange("upload")}
-          disabled={disabled}
-          className={`
-            flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all
-            ${mode === "upload"
-              ? "bg-scope-purple text-white"
-              : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white"}
-            ${disabled ? "opacity-50 cursor-not-allowed" : ""}
-          `}
-        >
-          📁 Upload
-        </button>
-        <button
-          type="button"
-          onClick={() => handleModeChange("mic")}
-          disabled={disabled}
-          className={`
-            flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-all
-            ${mode === "mic"
-              ? "bg-scope-cyan text-black"
-              : "bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white"}
-            ${disabled ? "opacity-50 cursor-not-allowed" : ""}
-          `}
-        >
-          🎤 Mic
-        </button>
+      <div className="flex gap-3">
+        {(["demo", "upload", "mic"] as AudioMode[]).map((m) => {
+          const isSelected = mode === m;
+          const isMic = m === "mic";
+          const accentColor = isMic ? "scope-cyan" : "scope-purple";
+
+          return (
+            <button
+              key={m}
+              type="button"
+              onClick={() => handleModeChange(m)}
+              disabled={disabled}
+              className={`
+                flex-1 px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] transition-all duration-500
+                ${isSelected
+                  ? `bg-${accentColor} text-${isMic ? 'black' : 'white'} shadow-[0_0_20px_rgba(139,92,246,0.3)]`
+                  : "bg-white/5 text-white/40 hover:bg-white/10 hover:text-white border border-white/5"}
+                ${disabled ? "opacity-30 cursor-not-allowed" : "hover:scale-105 active:scale-95"}
+              `}
+            >
+              {m === "demo" && "🎵 Demo"}
+              {m === "upload" && "📁 Upload"}
+              {m === "mic" && "🎤 Mic"}
+            </button>
+          );
+        })}
       </div>
 
       {/* Mode-specific content */}
       {mode === "demo" && (
-        <div className="bg-gray-800/50 rounded-lg p-3">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-gradient-brand rounded-lg flex items-center justify-center text-2xl">
+        <div className="glass rounded-2xl p-5 border-white/5 relative overflow-hidden group">
+          <div className="absolute inset-0 bg-scope-purple/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+          <div className="flex items-center gap-4 relative z-10">
+            <div className="w-14 h-14 bg-gradient-brand rounded-2xl flex items-center justify-center text-3xl shadow-lg group-hover:scale-110 transition-transform duration-500">
               🎧
             </div>
-            <div>
-              <p className="font-medium text-white">{DEMO_TRACK.name}</p>
-              <p className="text-sm text-gray-400">{DEMO_TRACK.artist}</p>
+            <div className="flex flex-col gap-1">
+              <p className="font-bold text-white uppercase tracking-tighter text-lg">{DEMO_TRACK.name}</p>
+              <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">{DEMO_TRACK.artist}</p>
             </div>
           </div>
         </div>
       )}
 
       {mode === "upload" && (
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-3">
           <label
             htmlFor="audio-upload"
             className={`
-              flex items-center justify-center gap-2 px-4 py-3 rounded-lg cursor-pointer
-              border-2 border-dashed transition-colors
+              flex items-center justify-center gap-3 px-6 py-5 rounded-2xl cursor-pointer
+              border border-dashed transition-all duration-500 glass
               ${disabled
-                ? "border-gray-700 text-gray-600 cursor-not-allowed"
-                : "border-gray-600 hover:border-scope-cyan text-gray-400 hover:text-white"}
+                ? "border-white/5 text-white/20 cursor-not-allowed"
+                : "border-white/20 hover:border-scope-cyan/50 text-white/40 hover:text-white hover:bg-white/5"}
             `}
           >
-            <span className="text-xl">📁</span>
-            <span>{fileName ? "Change Track" : "Select Audio File"}</span>
+            <span className="text-2xl">📁</span>
+            <span className="text-[10px] font-black uppercase tracking-[0.3em]">{fileName ? "Change Local Track" : "Inject Audio File"}</span>
             <input
               id="audio-upload"
               type="file"
@@ -410,41 +451,44 @@ export function AudioPlayer({
               className="hidden"
             />
           </label>
-          <p className="text-xs text-gray-500 px-1">Max file size: {MAX_UPLOAD_MB}MB</p>
-          {fileName && (
-            <p className="text-sm text-gray-400 truncate px-1">{fileName}</p>
-          )}
+          <div className="flex justify-between items-center px-2">
+            <p className="text-[9px] font-black uppercase tracking-widest text-white/20">Protocol: MAX {MAX_UPLOAD_MB}MB</p>
+            {fileName && (
+              <p className="text-[10px] font-bold text-scope-cyan truncate max-w-[60%]">{fileName}</p>
+            )}
+          </div>
           {uploadError && (
-            <p className="text-red-400 text-xs px-1" role="alert">
-              {uploadError}
+            <p className="text-red-400 text-[10px] font-black uppercase tracking-widest px-2 mt-1" role="alert">
+              Sync Error: {uploadError}
             </p>
           )}
         </div>
       )}
 
       {mode === "mic" && (
-        <div className="bg-gray-800/50 rounded-lg p-3">
-          <div className="flex items-center gap-3">
+        <div className="glass rounded-2xl p-5 border-white/5 relative overflow-hidden group">
+          <div className="absolute inset-0 bg-scope-cyan/10 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+          <div className="flex items-center gap-4 relative z-10">
             <div
               className={`
-              w-12 h-12 rounded-lg flex items-center justify-center text-2xl
-              ${micActive ? "bg-scope-cyan animate-pulse" : "bg-gray-700"}
+              w-14 h-14 rounded-2xl flex items-center justify-center text-3xl transition-all duration-500
+              ${micActive ? "bg-scope-cyan text-black shadow-[0_0_30px_rgba(6,182,212,0.4)]" : "bg-white/5 text-white/20"}
             `}
             >
               🎤
             </div>
-            <div className="flex-1">
-              <p className="font-medium text-white">
-                {micActive ? "Listening..." : "Microphone Input"}
+            <div className="flex-1 flex flex-col gap-1">
+              <p className="font-bold text-white uppercase tracking-tighter text-lg">
+                {micActive ? "Neural Input Active" : "Microphone Stream"}
               </p>
-              <p className="text-sm text-gray-400">
-                {micActive ? "Audio analysis active" : "Click play to start"}
+              <p className="text-[10px] font-black text-white/40 uppercase tracking-widest">
+                {micActive ? "Encoding real-time spectral data" : "Awaiting protocol initiation"}
               </p>
             </div>
           </div>
           {micError && (
-            <p className="text-red-400 text-xs mt-2" role="alert">
-              {micError}
+            <p className="text-red-400 text-[10px] font-black uppercase tracking-widest mt-4 px-2" role="alert">
+              Mic Error: {micError}
             </p>
           )}
         </div>
@@ -462,42 +506,61 @@ export function AudioPlayer({
 
       {/* Playback Controls */}
       {canPlay && (
-        <div className="space-y-3">
+        <div className="space-y-6 pt-2">
           {/* Play/Pause Button */}
           <div className="flex justify-center">
-          <button
-            type="button"
-            onClick={isPlaying ? handlePause : handlePlay}
-            disabled={disabled}
+            <button
+              type="button"
+              onClick={isPlaying ? handlePause : handlePlay}
+              disabled={disabled}
               className={`
-                w-14 h-14 rounded-full flex items-center justify-center text-2xl
-                transition-all
+                w-16 h-16 rounded-full flex items-center justify-center text-3xl
+                transition-all duration-500 shadow-2xl relative group
                 ${disabled
-                  ? "bg-gray-700 text-gray-500 cursor-not-allowed"
+                  ? "bg-white/5 text-white/10 cursor-not-allowed"
                   : mode === "mic"
-                    ? "bg-scope-cyan hover:bg-scope-cyan/80 text-black"
-                    : "bg-scope-purple hover:bg-scope-purple/80 text-white"}
+                    ? "bg-scope-cyan hover:bg-white text-black hover:shadow-[0_0_40px_rgba(6,182,212,0.4)]"
+                    : "bg-scope-purple hover:bg-white text-white hover:text-scope-purple hover:shadow-[0_0_40px_rgba(139,92,246,0.4)]"}
+                hover:scale-110 active:scale-90
               `}
               aria-label={isPlaying ? "Pause" : "Play"}
             >
+              {/* Pulsing ring when active */}
+              {isPlaying && (
+                <div className="absolute inset-0 rounded-full border-2 border-current animate-ping opacity-20 scale-125" />
+              )}
               {isPlaying ? "⏸" : "▶"}
             </button>
           </div>
 
           {/* Progress Bar (not for mic mode) */}
           {mode !== "mic" && audioSrc && (
-            <div className="space-y-1">
-              <input
-                type="range"
-                min={0}
-                max={duration || 100}
-                value={currentTime}
-                onChange={handleSeek}
-                disabled={disabled}
-                className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-scope-cyan"
-                aria-label="Seek audio"
-              />
-              <div className="flex justify-between text-xs text-gray-500">
+            <div className="space-y-3 px-2">
+              <div className="relative h-2 group">
+                <input
+                  type="range"
+                  min={0}
+                  max={duration || 100}
+                  value={currentTime}
+                  onChange={handleSeek}
+                  disabled={disabled}
+                  className="absolute inset-0 w-full h-full bg-white/5 rounded-full appearance-none cursor-pointer accent-scope-cyan z-20 opacity-0"
+                  aria-label="Seek audio"
+                />
+                {/* Visual Progress Track */}
+                <div className="absolute inset-0 bg-white/5 rounded-full z-0 overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-scope-purple to-scope-cyan rounded-full transition-all duration-100"
+                    style={{ width: `${(currentTime / (duration || 1)) * 100}%` }}
+                  />
+                </div>
+                {/* Knob mimic */}
+                <div
+                  className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg z-10 transition-all duration-100 border-2 border-scope-cyan pointer-events-none group-hover:scale-125"
+                  style={{ left: `calc(${(currentTime / (duration || 1)) * 100}% - 8px)` }}
+                />
+              </div>
+              <div className="flex justify-between text-[10px] font-black uppercase tracking-[0.3em] text-white/20">
                 <span>{formatTime(currentTime)}</span>
                 <span>{formatTime(duration)}</span>
               </div>
@@ -506,11 +569,18 @@ export function AudioPlayer({
 
           {/* Mic level indicator */}
           {mode === "mic" && micActive && (
-            <div className="h-2 bg-gray-700 rounded-lg overflow-hidden">
-              <div
-                className="h-full bg-scope-cyan rounded-lg transition-all duration-75"
-                style={{ width: `${micLevel}%` }}
-              />
+            <div className="px-2">
+              <div className="h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                <div
+                  className="h-full bg-gradient-to-r from-scope-cyan via-scope-magenta to-scope-purple rounded-full transition-all duration-75 shadow-[0_0_15px_rgba(6,182,212,0.5)]"
+                  style={{ width: `${micLevel}%` }}
+                />
+              </div>
+              <div className="flex justify-between mt-2 text-[9px] font-black uppercase tracking-widest text-white/10">
+                <span>Min</span>
+                <span>Spectral Flux</span>
+                <span>Max</span>
+              </div>
             </div>
           )}
         </div>

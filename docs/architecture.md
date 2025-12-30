@@ -1,6 +1,6 @@
 # Architecture - MetaDJ Scope
 
-**Last Modified**: 2025-12-30 16:52 EST
+**Last Modified**: 2025-12-30 17:31 EST
 **Status**: Active
 
 ## Purpose
@@ -10,7 +10,12 @@ Document the architecture for MetaDJ Scope with Soundscape and Avatar Studio act
 
 ## UI Approach
 
-**Home Focus Selector (current)**: Two large tiles (Soundscape + Avatar Studio) at `/` toggle which experience is focused below.
+**Page Structure (current)**: Three dedicated pages for clean separation:
+- **Home** (`/`) — Landing page with tiles linking to each experience
+- **Soundscape** (`/soundscape`) — Dedicated page for music-reactive AI visuals
+- **Avatar Studio** (`/avatar`) — Dedicated page for MetaDJ avatar generation with VACE
+
+Each experience page shows its own Scope connection status in the header.
 
 **Soundscape (current)**: Custom Next.js UI for in-browser audio analysis and parameter mapping.
 
@@ -92,6 +97,9 @@ Avatar Studio runs in video-to-video mode: it sends a webcam video track to Scop
 - Add the webcam track via `pc.addTrack(track, inputStream)` (no recv-only transceiver).
 - Initial parameters must include `input_mode: "video"` for video-to-video.
 - Match webcam resolution to pipeline resolution (default: 320x576).
+- Apply updates by sending prompt/VACE changes over the data channel with `reset_cache: true`.
+- Auto-reconnect attempts 3 retries with a 2s base delay when the data channel or connection drops.
+- Webcam must be active before starting the stream.
 
 ---
 

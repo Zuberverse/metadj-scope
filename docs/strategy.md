@@ -1,10 +1,10 @@
 # Strategy - MetaDJ Scope
 
-**Last Modified**: 2025-12-30 10:47 EST
+**Last Modified**: 2025-12-30 17:31 EST
 **Status**: Active
 
 ## Purpose
-Define the goals, constraints, and decision points for the Daydream Scope hackathon project, with Soundscape as the current focus.
+Define the goals, constraints, and decision points for the Daydream Scope hackathon project, with Soundscape and Avatar Studio as the current focus.
 
 ## Selected Direction
 Build **Soundscape** as the primary experience and bring **Avatar Studio** to MVP parity. Storyteller remains future-facing.
@@ -27,7 +27,8 @@ Build **Soundscape** as the primary experience and bring **Avatar Studio** to MV
 - Ship a stable, end-to-end Soundscape demo (audio input -> analysis -> Scope output).
 - Keep the experience responsive and visually consistent during playback.
 - Ensure setup is simple for testing (one local UI, one Scope server URL).
- - Bring Avatar Studio to a stable, demo-ready stream with VACE identity lock.
+- Bring Avatar Studio to a stable, demo-ready stream with VACE identity lock + webcam ingest.
+- Support prompt/VACE updates without restarting the stream.
 
 ### Secondary
 - Establish a reusable theme system for future performance use.
@@ -52,11 +53,12 @@ Build **Soundscape** as the primary experience and bring **Avatar Studio** to MV
 | Pipeline load latency | Medium | Load params set up-front; document load expectations |
 | Audio analysis jank | Medium | Throttle UI updates; keep analysis on audio thread |
 | Oversized uploads | Medium | Enforce file size limit and surface errors |
+| Webcam permissions blocked | Medium | Clear webcam error states + start-stream disabled until webcam active |
 
 ## Decision Points
 
 ### Decision 1: UI Approach (Current)
-**Decision**: Home focus selector with two tiles (Soundscape + Avatar Studio) that switch the main experience below. Native Scope UI remains a fallback.
+**Decision**: Three dedicated pages — Home (`/`) as landing with tiles, Soundscape (`/soundscape`), and Avatar Studio (`/avatar`) as separate experiences. Native Scope UI remains a fallback.
 
 **Rationale**:
 - Soundscape requires in-browser audio analysis and parameter mapping.
@@ -89,6 +91,7 @@ Build **Soundscape** as the primary experience and bring **Avatar Studio** to MV
 1. Align WebRTC data channel behavior with Scope docs.
 2. Ensure pipeline load params follow aspect ratio selection.
 3. Harden audio upload validation.
+4. Finalize Avatar Studio apply-updates + reconnect behavior for demo reliability.
 
 ### Phase 2: Polish (Next)
 1. Calibrate mapping ranges per theme.
