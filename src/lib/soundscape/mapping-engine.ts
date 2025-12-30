@@ -70,13 +70,9 @@ export class MappingEngine {
       this.theme.ranges.noiseScale
     );
 
-    const vaceScale = this.computeMappedValue(
-      "vaceScale",
-      derived,
-      this.theme.ranges.vaceScale
-    );
-
-    const denoisingSteps = this.computeDenoisingSteps(derived.energy);
+    // Fixed denoising steps - always use 4-step schedule for consistent quality
+    // Matches native Scope UI defaults: [1000, 750, 500, 250]
+    const denoisingSteps = [1000, 750, 500, 250];
 
     // Handle beat effects
     const beatEffect = this.handleBeatEffects(beat, derived);
@@ -88,11 +84,11 @@ export class MappingEngine {
     const prompts = this.buildPrompts(derived, beatEffect.promptOverride);
 
     // Build final parameters
+    // Note: vaceScale omitted - Soundscape uses text-only mode (no VACE)
     const params: ScopeParameters = {
       prompts,
       denoisingSteps,
       noiseScale,
-      vaceScale,
       resetCache: beatEffect.resetCache,
       transition: beatEffect.transition,
     };
@@ -199,19 +195,6 @@ export class MappingEngine {
       default:
         return value;
     }
-  }
-
-  // ============================================================================
-  // Private: Denoising Steps
-  // ============================================================================
-
-  private computeDenoisingSteps(energy: number): number[] {
-    const { min, max } = this.theme.ranges.denoisingSteps;
-
-    // Use energy to blend between fewer steps (fast) and more steps (quality)
-    if (energy > 0.7) return max; // High energy: max quality
-    if (energy < 0.3) return min; // Low energy: faster
-    return energy > 0.5 ? max : min; // Simple threshold for MVP
   }
 
   // ============================================================================
@@ -357,6 +340,7 @@ export class MappingEngine {
       return target;
     }
 
+    // Note: vaceScale omitted - Soundscape uses text-only mode (no VACE)
     return {
       ...target,
       noiseScale: this.lerp(
@@ -364,13 +348,6 @@ export class MappingEngine {
         target.noiseScale,
         this.smoothingFactor
       ),
-      vaceScale: target.vaceScale
-        ? this.lerp(
-            this.lastParams.vaceScale || target.vaceScale,
-            target.vaceScale,
-            this.smoothingFactor
-          )
-        : undefined,
       // Don't smooth denoising steps - they change discretely
       denoisingSteps: target.denoisingSteps,
       // Don't smooth prompts - use Scope's transition system
@@ -452,11 +429,10 @@ export class ParameterSender {
       noise_scale: params.noiseScale,
       noise_controller: false, // We control noise manually
       manage_cache: true,
+      paused: false, // Ensure generation is running
     };
 
-    if (params.vaceScale !== undefined) {
-      formatted.vace_context_scale = params.vaceScale;
-    }
+    // Note: vace_context_scale omitted - Soundscape uses text mode only (no VACE ref images)
 
     if (params.transition) {
       formatted.transition = params.transition;

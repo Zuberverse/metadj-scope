@@ -1,6 +1,6 @@
 # MetaDJ Scope
 
-**Last Modified**: 2025-12-29 12:38 EST
+**Last Modified**: 2025-12-29 21:22 EST
 
 Hackathon exploration project for the Daydream Scope Track (Interactive AI Video Program). Building real-time AI video generation features centered on Soundscape. Avatar Studio and Storyteller are documented but not in scope for the current sprint.
 
@@ -79,7 +79,7 @@ Soundscape transforms music into AI-generated visuals in real-time. Audio featur
 ### Quick Start
 ```bash
 npm run dev
-# Open http://localhost:2000/soundscape
+# Open http://localhost:3500/soundscape
 # 1. Select Demo mode and hit Play
 # 2. Click "Connect to Scope" (requires RunPod pod running)
 # 3. Watch audio-reactive visuals generate
@@ -87,6 +87,20 @@ npm run dev
 
 ### Specification
 See `docs/features/soundscape-mvp-spec.md` for complete technical specification (1,875 lines covering audio analysis, mapping, WebRTC, themes, and error handling).
+
+### Troubleshooting
+
+If video doesn't appear after connecting:
+
+| Issue | Fix |
+|-------|-----|
+| "Server not healthy" | Health endpoint is `/health` (root-level, not `/api/v1/health`) |
+| Connected but no frames | Pipeline must load with `vace_enabled: false` for text-to-video mode |
+| Track shows `muted: true` | Use `pc.addTransceiver("video")` without `{ direction: "recvonly" }` |
+| Generation doesn't start | Include `paused: false` in initial parameters |
+| Pipeline stuck loading | Close native Scope UI tabs (conflicts with pipeline) |
+
+See `docs/architecture.md` for detailed troubleshooting guide.
 
 ## Active Instance
 
@@ -133,7 +147,7 @@ Hackathon mode uses the native Scope UI, so local install is only needed for fut
 ### Local Development (Future Custom UI)
 
 ```bash
-# Start development server (port 2000)
+# Start development server (port 3500)
 npm run dev
 
 # Build for production
@@ -143,7 +157,7 @@ npm run build
 npm run type-check
 ```
 
-Local dev server: http://localhost:2000  
+Local dev server: http://localhost:3500
 Note: The scaffold now uses Scope's WebRTC offer flow. Set `NEXT_PUBLIC_SCOPE_API_URL` to your Scope server and start the `longlive` pipeline before clicking "Start Generation." Reference images only apply when the path is a Scope asset (e.g., `/assets/...`).
 
 ## Deployment
@@ -160,10 +174,10 @@ Note: The scaffold now uses Scope's WebRTC offer flow. Set `NEXT_PUBLIC_SCOPE_AP
 ## Commands
 | Command | Description |
 | --- | --- |
-| `npm run dev` | Start development server (port 2000) |
+| `npm run dev` | Start development server (port 3500) |
 | `npm run dev:turbo` | Start with Turbopack |
 | `npm run build` | Build for production |
-| `npm run start` | Start production server |
+| `npm run start` | Start production server (port 3500) |
 | `npm run lint` | Run ESLint |
 | `npm run type-check` | TypeScript type check |
 | `npm run check:scope` | Validate Scope API connectivity |

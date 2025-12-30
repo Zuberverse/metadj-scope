@@ -12,6 +12,18 @@ const SCOPE_API_URL = (process.env.NEXT_PUBLIC_SCOPE_API_URL || "http://localhos
 
 const HEADER_ALLOWLIST = ["content-type", "accept", "authorization"];
 
+// Timeout configuration (in milliseconds)
+const DEFAULT_TIMEOUT = 30000;
+const PIPELINE_LOAD_TIMEOUT = 60000;
+
+function getTimeoutForPath(path: string): number {
+  // Pipeline loading can take longer on cold starts
+  if (path.includes("pipeline/load")) {
+    return PIPELINE_LOAD_TIMEOUT;
+  }
+  return DEFAULT_TIMEOUT;
+}
+
 async function proxyRequest(
   request: NextRequest,
   { params }: { params: Promise<{ path: string[] }> }
@@ -38,11 +50,17 @@ async function proxyRequest(
     }
   }
 
+  // Create AbortController for timeout
+  const controller = new AbortController();
+  const timeoutMs = getTimeoutForPath(targetPath);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
     const response = await fetch(targetUrl, {
       method: request.method,
       headers,
       body,
+      signal: controller.signal,
     });
 
     if (response.status === 204) {
@@ -60,11 +78,24 @@ async function proxyRequest(
       headers: responseHeaders,
     });
   } catch (error) {
+    clearTimeout(timeoutId);
+
+    // Handle abort/timeout errors
+    if (error instanceof Error && error.name === "AbortError") {
+      console.error(`[Scope Proxy] ${request.method} timeout after ${timeoutMs}ms:`, targetPath);
+      return NextResponse.json(
+        { error: "Request to Scope API timed out" },
+        { status: 504 }
+      );
+    }
+
     console.error(`[Scope Proxy] ${request.method} error:`, error);
     return NextResponse.json(
       { error: "Failed to proxy request to Scope API" },
       { status: 502 }
     );
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 

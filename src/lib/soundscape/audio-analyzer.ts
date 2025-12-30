@@ -225,7 +225,7 @@ export class AudioAnalyzer {
         bpm: this.detectedBpm,
         confidence: this.bpmConfidence,
         lastBeatTime: this.lastBeatTime,
-        isBeat: this.checkBeat(derived.energy),
+        isBeat: this.checkBeat(),
       },
       derived,
     };
@@ -301,9 +301,8 @@ export class AudioAnalyzer {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  private checkBeat(energy: number): boolean {
-    // Note: energy param kept for future enhancement (threshold-based detection)
+  private checkBeat(): boolean {
+    // Note: Could add energy param for threshold-based detection enhancement
     return this.beatDetector?.isBeatFrame() ?? false;
   }
 }

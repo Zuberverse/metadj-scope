@@ -26,17 +26,20 @@ const makeAnalysis = (energy: number, isBeat = false): AnalysisState => ({
   },
 });
 
-describe("MappingEngine", () => {
-  it("uses min denoising steps for low energy", () => {
-    const engine = new MappingEngine(COSMIC_VOYAGE);
-    const params = engine.computeParameters(makeAnalysis(0.1));
-    expect(params.denoisingSteps).toEqual(COSMIC_VOYAGE.ranges.denoisingSteps.min);
-  });
+// Fixed denoising steps matching Scope UI defaults
+const FIXED_DENOISING_STEPS = [1000, 750, 500, 250];
 
-  it("uses max denoising steps for high energy", () => {
+describe("MappingEngine", () => {
+  it("uses fixed denoising steps regardless of energy", () => {
     const engine = new MappingEngine(COSMIC_VOYAGE);
-    const params = engine.computeParameters(makeAnalysis(0.9));
-    expect(params.denoisingSteps).toEqual(COSMIC_VOYAGE.ranges.denoisingSteps.max);
+
+    // Low energy
+    const lowParams = engine.computeParameters(makeAnalysis(0.1));
+    expect(lowParams.denoisingSteps).toEqual(FIXED_DENOISING_STEPS);
+
+    // High energy - same fixed steps
+    const highParams = engine.computeParameters(makeAnalysis(0.9));
+    expect(highParams.denoisingSteps).toEqual(FIXED_DENOISING_STEPS);
   });
 
   it("keeps noise scale within theme range", () => {

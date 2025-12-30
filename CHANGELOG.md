@@ -1,6 +1,6 @@
 # Changelog
 
-**Last Modified**: 2025-12-29 14:07 EST
+**Last Modified**: 2025-12-29 21:45 EST
 
 All notable changes to this project will be documented in this file.
 
@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- WebRTC reconnection logic with exponential backoff (max 3 attempts, 2s base delay)
+- Retry button when connection fails after max reconnection attempts
+- Real microphone level indicator using Web Audio API AnalyserNode
+- Request timeout handling for Scope API proxy (30s default, 60s for pipeline load)
 - **Soundscape MVP** - Complete audio-reactive visual generation feature
   - Full WebRTC connection flow (health check → pipeline load → ICE → SDP exchange)
   - Audio input modes: Demo track, file upload, and live microphone
@@ -32,6 +36,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `aria-live` regions for dynamic content updates
 
 ### Changed
+- Denoising steps now use fixed 4-step schedule `[1000, 750, 500, 250]` matching Scope UI defaults (no energy-based variation)
+- Removed vaceScale from mapping engine and parameter smoothing (Soundscape is text-only, no VACE)
+- Removed unused `computeDenoisingSteps()` method from MappingEngine (dead code cleanup)
+- Default dev server port changed from 2000 to 3500 in package.json scripts
+- Debug window assignment (`window.debugPeerConnection`) now gated behind `NODE_ENV === "development"`
+- Mic level indicator now shows actual audio levels via Web Audio API AnalyserNode
 - Documented custom UI as scaffold-only for the hackathon workflow
 - Soundscape pipeline loading now passes aspect ratio resolution via `load_params`
 - WebRTC connection flow now waits for pipeline readiness before SDP exchange
@@ -53,6 +63,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - No first-run download delays—can switch pipelines instantly
 
 ### Fixed
+- Audio mode now properly connects parameter sender to data channel when audio is connected after Scope (was causing audio to not drive visuals)
+- Health endpoint uses `/health` (root-level, no `/api/v1/` prefix—unique to this endpoint; all other endpoints use `/api/v1/` prefix)
+- Soundscape now loads pipeline with `vace_enabled: false` for pure text-to-video mode (was causing silent generation failure)
+- Removed `vace_context_scale` from Soundscape parameter sender (not needed without VACE)
+- Added `paused: false` to initial parameters and data channel messages (ensures generation starts immediately)
+- Removed explicit `{ direction: "recvonly" }` from video transceiver (matches Scope API docs; let WebRTC negotiate naturally)
+- Removed unused `energy` parameter from `checkBeat()` method (resolved ESLint warning)
 - Scope API proxy now preserves query strings and supports non-JSON payloads (asset uploads)
 - Soundscape ICE candidates now trickle once a session is established
 - Soundscape initial parameters now include `manage_cache` for Scope defaults

@@ -4,7 +4,7 @@
 
 **Platform Notice**: This `CLAUDE.md` is optimized for Claude Code sessions. OpenAI Codex (via the Codex CLI) follows the accompanying `AGENTS.md`, and Cursor IDE uses `.cursor/rules/` guidance when present; each platform gets the same standards.
 
-**Last Modified**: 2025-12-28 11:07 EST
+**Last Modified**: 2025-12-29 20:10 EST
 *Parent: /3-projects/5-software/CLAUDE.md*
 
 ## User Context
@@ -56,17 +56,17 @@
 - Update README and CHANGELOG for meaningful milestones.
 
 ## Workflow and Commands
-- `npm run dev` - Start development server (uses PORT env, default 2000)
+- `npm run dev` - Start development server on port 3500 (override with `PORT=XXXX npm run dev`)
 - `npm run dev:turbo` - Start dev server with Turbopack
 - `npm run build` - Build for production
-- `npm run start` - Start production server
+- `npm run start` - Start production server on port 3500
 - `npm run lint` - Run ESLint
 - `npm run type-check` - TypeScript type check
 - `npm run test` - Run Vitest (passes with no tests until a suite exists)
 
 ## Soundscape MVP Startup
 
-**Port**: 3500 (configured in `.env.local`)
+**Port**: 3500 (default in package.json scripts)
 
 **Prerequisites**:
 1. RunPod pod must be running (start via console: https://console.runpod.io/pods?id=8tn9fypag1wnxz)

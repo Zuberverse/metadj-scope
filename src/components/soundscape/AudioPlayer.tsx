@@ -32,6 +32,9 @@ export function AudioPlayer({
 }: AudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const micStreamRef = useRef<MediaStream | null>(null);
+  const micAnalyserRef = useRef<AnalyserNode | null>(null);
+  const micAudioContextRef = useRef<AudioContext | null>(null);
+  const micLevelIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [mode, setMode] = useState<AudioMode>("demo");
   const [audioSrc, setAudioSrc] = useState<string | null>(DEMO_TRACK.path);
@@ -41,6 +44,7 @@ export function AudioPlayer({
   const [duration, setDuration] = useState(0);
   const [micError, setMicError] = useState<string | null>(null);
   const [micActive, setMicActive] = useState(false);
+  const [micLevel, setMicLevel] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   // Connect audio element when source changes
@@ -56,13 +60,25 @@ export function AudioPlayer({
     }
   }, [audioSrc, mode, onAudioElement]);
 
-  // Cleanup mic stream on unmount or mode change
+  // Cleanup mic stream and analyser on unmount or mode change
   useEffect(() => {
     return () => {
+      // Clean up level monitoring interval
+      if (micLevelIntervalRef.current) {
+        clearInterval(micLevelIntervalRef.current);
+        micLevelIntervalRef.current = null;
+      }
+      // Clean up mic stream
       if (micStreamRef.current) {
         micStreamRef.current.getTracks().forEach((track) => track.stop());
         micStreamRef.current = null;
       }
+      // Clean up audio context
+      if (micAudioContextRef.current) {
+        micAudioContextRef.current.close();
+        micAudioContextRef.current = null;
+      }
+      micAnalyserRef.current = null;
     };
   }, []);
 
@@ -87,10 +103,23 @@ export function AudioPlayer({
       setUploadError(null);
 
       // Stop mic if switching away
-      if (mode === "mic" && micStreamRef.current) {
-        micStreamRef.current.getTracks().forEach((track) => track.stop());
-        micStreamRef.current = null;
+      if (mode === "mic") {
+        // Clean up level monitoring
+        if (micLevelIntervalRef.current) {
+          clearInterval(micLevelIntervalRef.current);
+          micLevelIntervalRef.current = null;
+        }
+        if (micStreamRef.current) {
+          micStreamRef.current.getTracks().forEach((track) => track.stop());
+          micStreamRef.current = null;
+        }
+        if (micAudioContextRef.current) {
+          micAudioContextRef.current.close();
+          micAudioContextRef.current = null;
+        }
+        micAnalyserRef.current = null;
         setMicActive(false);
+        setMicLevel(0);
       }
 
       setMode(newMode);
@@ -168,6 +197,33 @@ export function AudioPlayer({
       micStreamRef.current = stream;
       setMicActive(true);
 
+      // Set up audio analyser for level monitoring
+      const audioContext = new AudioContext();
+      micAudioContextRef.current = audioContext;
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      micAnalyserRef.current = analyser;
+
+      const source = audioContext.createMediaStreamSource(stream);
+      source.connect(analyser);
+
+      // Start level monitoring at ~15fps
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      micLevelIntervalRef.current = setInterval(() => {
+        if (micAnalyserRef.current) {
+          micAnalyserRef.current.getByteFrequencyData(dataArray);
+          // Calculate RMS-like level from frequency data
+          let sum = 0;
+          for (let i = 0; i < dataArray.length; i++) {
+            sum += dataArray[i];
+          }
+          const average = sum / dataArray.length;
+          // Normalize to 0-100 range with some amplification
+          const level = Math.min(100, (average / 128) * 100);
+          setMicLevel(level);
+        }
+      }, 66); // ~15fps
+
       // Create audio element for mic stream
       if (audioRef.current) {
         audioRef.current.srcObject = stream;
@@ -185,14 +241,25 @@ export function AudioPlayer({
   }, [onAudioElement, onPlayStateChange]);
 
   const stopMic = useCallback(() => {
+    // Clean up level monitoring
+    if (micLevelIntervalRef.current) {
+      clearInterval(micLevelIntervalRef.current);
+      micLevelIntervalRef.current = null;
+    }
     if (micStreamRef.current) {
       micStreamRef.current.getTracks().forEach((track) => track.stop());
       micStreamRef.current = null;
     }
+    if (micAudioContextRef.current) {
+      micAudioContextRef.current.close();
+      micAudioContextRef.current = null;
+    }
+    micAnalyserRef.current = null;
     if (audioRef.current) {
       audioRef.current.srcObject = null;
     }
     setMicActive(false);
+    setMicLevel(0);
     setIsPlaying(false);
     onPlayStateChange(false);
   }, [onPlayStateChange]);
@@ -437,8 +504,8 @@ export function AudioPlayer({
           {mode === "mic" && micActive && (
             <div className="h-2 bg-gray-700 rounded-lg overflow-hidden">
               <div
-                className="h-full bg-scope-cyan rounded-lg animate-pulse"
-                style={{ width: "60%" }}
+                className="h-full bg-scope-cyan rounded-lg transition-all duration-75"
+                style={{ width: `${micLevel}%` }}
               />
             </div>
           )}

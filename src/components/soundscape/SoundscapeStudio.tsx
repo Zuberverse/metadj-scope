@@ -18,6 +18,10 @@ import { AspectRatioToggle } from "./AspectRatioToggle";
 // Default pipeline for Soundscape (supports VACE + smooth transitions)
 const DEFAULT_PIPELINE = "longlive";
 
+// Reconnection configuration
+const MAX_RECONNECT_ATTEMPTS = 3;
+const RECONNECT_DELAY_MS = 2000;
+
 interface SoundscapeStudioProps {
   onConnectionChange?: (connected: boolean) => void;
 }
@@ -28,6 +32,8 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
   const [scopeStream, setScopeStream] = useState<MediaStream | null>(null);
   const [scopeError, setScopeError] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<string>("");
+  const [reconnectAttempts, setReconnectAttempts] = useState(0);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
@@ -113,6 +119,10 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
   // Cleanup WebRTC on unmount
   useEffect(() => {
     return () => {
+      // Cancel any pending reconnection
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
       // Close data channel
       if (dataChannelRef.current) {
         dataChannelRef.current.close();
@@ -125,7 +135,14 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
   }, []);
 
   // Disconnect from Scope and cleanup WebRTC resources
-  const handleDisconnectScope = useCallback(() => {
+  // userInitiated: true if user clicked disconnect, false if connection dropped
+  const handleDisconnectScope = useCallback((userInitiated = false) => {
+    // Cancel any pending reconnection
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
     // Close data channel
     if (dataChannelRef.current) {
       dataChannelRef.current.close();
@@ -141,7 +158,14 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
     // Clear stream
     setScopeStream(null);
     setConnectionStatus("");
-    console.log("[Soundscape] Disconnected from Scope");
+
+    // Reset attempts on user-initiated disconnect
+    if (userInitiated) {
+      setReconnectAttempts(0);
+      setScopeError(null);
+    }
+
+    console.log("[Soundscape] Disconnected from Scope", userInitiated ? "(user)" : "(connection lost)");
   }, []);
 
   // Connect to Scope with full WebRTC flow
@@ -162,11 +186,12 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
       }
       console.log("[Soundscape] Health check passed:", health);
 
-      // Step 2: Load pipeline with current resolution
+      // Step 2: Load pipeline with current resolution (VACE disabled for text-only mode)
       setConnectionStatus(`Loading ${DEFAULT_PIPELINE} pipeline...`);
       const loadParams = {
         width: aspectRatio.resolution.width,
         height: aspectRatio.resolution.height,
+        vace_enabled: false, // Soundscape uses text mode only, no reference images
       };
       const loaded = await scopeClient.loadPipeline(DEFAULT_PIPELINE, loadParams);
       if (!loaded) {
@@ -222,12 +247,27 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
         }
       };
 
-      // Monitor connection state
+      // Monitor connection state with auto-reconnect
       pc.onconnectionstatechange = () => {
         console.log("[Soundscape] Connection state:", pc.connectionState);
         if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
           setScopeError("Connection lost");
-          handleDisconnectScope();
+          handleDisconnectScope(false); // Not user-initiated
+
+          // Auto-reconnect if under max attempts
+          setReconnectAttempts((prev) => {
+            const newAttempts = prev + 1;
+            if (newAttempts <= MAX_RECONNECT_ATTEMPTS) {
+              console.log(`[Soundscape] Auto-reconnecting (attempt ${newAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
+              setConnectionStatus(`Reconnecting (${newAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
+              reconnectTimeoutRef.current = setTimeout(() => {
+                handleConnectScope();
+              }, RECONNECT_DELAY_MS * newAttempts); // Exponential backoff
+            } else {
+              setScopeError("Connection failed after multiple attempts. Click Retry to try again.");
+            }
+            return newAttempts;
+          });
         }
       };
 
@@ -247,11 +287,14 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
         console.log("[Soundscape] ICE gathering state:", pc.iceGatheringState);
       };
 
-      // Expose for debugging
-      (window as unknown as { debugPeerConnection: RTCPeerConnection }).debugPeerConnection = pc;
+      // Expose for debugging (development only)
+      if (process.env.NODE_ENV === "development") {
+        (window as unknown as { debugPeerConnection: RTCPeerConnection }).debugPeerConnection = pc;
+      }
 
-      // Step 5: Add transceivers for video (receive only)
-      pc.addTransceiver("video", { direction: "recvonly" });
+      // Step 5: Add video transceiver (receive-only mode, no input video)
+      // Note: Don't specify direction - let WebRTC negotiate naturally
+      pc.addTransceiver("video");
 
       // Step 6: Create data channel for parameters
       const dataChannel = pc.createDataChannel("parameters", {
@@ -276,7 +319,7 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
             const errorMessage = message.error_message || "Scope stream stopped";
             console.warn("[Soundscape] Stream stopped:", errorMessage);
             setScopeError(errorMessage);
-            handleDisconnectScope();
+            handleDisconnectScope(false); // Not user-initiated, may trigger reconnect
           }
         } catch (error) {
           console.warn("[Soundscape] Data channel message parse failed:", error);
@@ -304,12 +347,14 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
       }
 
       // Build initial parameters from current theme
+      // Note: paused: false ensures generation starts immediately
       const initialParams = currentTheme
         ? {
             prompts: [{ text: currentTheme.basePrompt, weight: 1.0 }],
             noise_scale: currentTheme.ranges.noiseScale.min,
             denoising_step_list: currentTheme.ranges.denoisingSteps.min,
             manage_cache: true,
+            paused: false,
           }
         : undefined;
 
@@ -332,6 +377,10 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
       sessionId = answer.sessionId;
       console.log("[Soundscape] WebRTC connection established, session:", answer.sessionId);
       setConnectionStatus("Connected");
+
+      // Reset reconnect attempts on successful connection
+      setReconnectAttempts(0);
+      setScopeError(null);
 
       // Note: ambient mode is started in dataChannel.onopen (when channel is ready)
 
@@ -383,7 +432,8 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
             <div className="flex items-center gap-2">
               {scopeStream && (
                 <button
-                  onClick={handleDisconnectScope}
+                  type="button"
+                  onClick={() => handleDisconnectScope(true)}
                   className="px-2 py-1 bg-gray-700 hover:bg-red-500/80 text-gray-300 hover:text-white text-xs rounded transition-all"
                 >
                   Disconnect
@@ -440,9 +490,24 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
                 </button>
 
                 {scopeError && (
-                  <p className="text-red-400 text-xs mt-2" role="alert">
-                    {scopeError}
-                  </p>
+                  <div className="mt-3 text-center">
+                    <p className="text-red-400 text-xs mb-2" role="alert">
+                      {scopeError}
+                    </p>
+                    {reconnectAttempts >= MAX_RECONNECT_ATTEMPTS && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setReconnectAttempts(0);
+                          setScopeError(null);
+                          handleConnectScope();
+                        }}
+                        className="px-3 py-1.5 bg-scope-cyan hover:bg-scope-cyan/80 text-black text-sm rounded-lg font-medium transition-all"
+                      >
+                        Retry Connection
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             )}

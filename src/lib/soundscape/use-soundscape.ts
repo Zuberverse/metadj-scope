@@ -192,6 +192,12 @@ export function useSoundscape(options: UseSoundscapeOptions = {}): UseSoundscape
         // Create parameter sender
         parameterSenderRef.current = new ParameterSender(updateRate);
 
+        // Connect data channel if already available (Scope connected before audio)
+        if (dataChannelRef.current && dataChannelRef.current.readyState === "open") {
+          parameterSenderRef.current.setDataChannel(dataChannelRef.current);
+          log("Connected parameter sender to existing data channel");
+        }
+
         setState((prev) => ({ ...prev, playback: "loading", error: null }));
         log("Audio connected successfully");
       } catch (error) {

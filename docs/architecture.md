@@ -1,6 +1,6 @@
 # Architecture - MetaDJ Scope
 
-**Last Modified**: 2025-12-29 12:26 EST
+**Last Modified**: 2025-12-29 21:20 EST
 **Status**: Active
 
 ## Purpose
@@ -40,13 +40,31 @@ Document the architecture for MetaDJ Scope with Soundscape as the active experie
 
 ## Soundscape WebRTC Flow
 
-1. Health check: `GET /health`
-2. Load pipeline: `POST /api/v1/pipeline/load` with `load_params` (width/height)
-3. ICE servers: `GET /api/v1/webrtc/ice-servers`
-4. Create peer connection and data channel (`parameters`)
-5. Create offer and send to `POST /api/v1/webrtc/offer`
-6. Apply answer + add ICE candidates
-7. Send parameter updates via data channel (rate-limited)
+1. Health check: `GET /health` (root-level, NOT `/api/v1/health`)
+2. Load pipeline: `POST /api/v1/pipeline/load` with `load_params`:
+   - `vace_enabled: false` (critical for T2V mode without reference images)
+   - `width`/`height` based on aspect ratio
+3. Wait for pipeline status `"loaded"`: `GET /api/v1/pipeline/status`
+4. Get ICE servers: `GET /api/v1/webrtc/ice-servers`
+5. Create peer connection with ICE servers
+6. Add video transceiver: `pc.addTransceiver("video")` (NO direction specified)
+7. Create data channel: `pc.createDataChannel("parameters", { ordered: true })`
+8. Create offer and send to `POST /api/v1/webrtc/offer` with `initialParameters`:
+   - `prompts`, `denoising_step_list`, `manage_cache: true`, `paused: false`
+9. Set remote description from answer
+10. Trickle ICE candidates via `PATCH /api/v1/webrtc/offer/{sessionId}`
+11. On data channel open: start sending parameter updates (rate-limited to 30Hz)
+
+### Critical Implementation Notes
+
+| Requirement | Details |
+|-------------|---------|
+| Health endpoint | `/health` (root-level, unique among all endpoints) |
+| Pipeline load | Must set `vace_enabled: false` for text-to-video mode |
+| Video transceiver | Use `pc.addTransceiver("video")` WITHOUT `{ direction: "recvonly" }` |
+| Initial params | Include `paused: false` to ensure generation starts immediately |
+| Data channel params | Include `paused: false` in ongoing updates |
+| Session conflicts | Close native Scope UI tabs to avoid pipeline interference |
 
 ---
 
@@ -76,6 +94,46 @@ Avatar Studio remains documented but is not active in the current sprint. See:
 - Pod: `metadj-scope`
 - GPU: RTX Pro 6000 (96GB)
 - Scope UI: https://t68d6nv3pi7uia-8000.proxy.runpod.net
+
+---
+
+## Troubleshooting
+
+### No Video Frames (Track muted)
+
+**Symptoms**: WebRTC connects, ICE connected, data channel open, but `videoWidth: 0`, track `muted: true`
+
+**Causes & Fixes**:
+
+| Symptom | Likely Cause | Fix |
+|---------|--------------|-----|
+| "Scope server is not healthy" | Wrong health endpoint | Use `/health` not `/api/v1/health` |
+| Silent generation failure | VACE enabled without ref images | Set `vace_enabled: false` in pipeline load |
+| Track muted, no frames | Wrong transceiver setup | Use `pc.addTransceiver("video")` without direction |
+| Connected but no generation | Missing paused flag | Add `paused: false` to initial params |
+| Pipeline stuck loading | Conflict with native UI | Close other Scope tabs/sessions |
+
+### Pipeline Loading Forever
+
+**Symptoms**: Status polling shows `"loading"` indefinitely, `pipeline_id: null`
+
+**Causes**:
+1. Native Scope UI in another tab triggered a different pipeline
+2. Previous session didn't clean up properly
+
+**Fix**: Manually load the pipeline via curl or close conflicting tabs:
+```bash
+curl -X POST "https://YOUR-POD-8000.proxy.runpod.net/api/v1/pipeline/load" \
+  -H "Content-Type: application/json" \
+  -d '{"pipeline_id": "longlive", "load_params": {"vace_enabled": false}}'
+```
+
+### Debugging Tips
+
+1. Check browser console for `[Soundscape]` prefixed logs
+2. Verify pipeline status: `curl https://YOUR-POD-8000.proxy.runpod.net/api/v1/pipeline/status`
+3. Check video element: `document.querySelector('video').srcObject.getTracks()[0].muted` should be `false`
+4. ICE state should reach `connected` or `completed`
 
 ---
 
