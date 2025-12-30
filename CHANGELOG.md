@@ -1,6 +1,6 @@
 # Changelog
 
-**Last Modified**: 2025-12-29 21:45 EST
+**Last Modified**: 2025-12-29 22:15 EST
 
 All notable changes to this project will be documented in this file.
 
@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `docs/soundscape-mechanics.md` - Technical deep-dive on how Soundscape works (latent cache, noise, FPS, transitions, why forward motion happens)
 - WebRTC reconnection logic with exponential backoff (max 3 attempts, 2s base delay)
 - Retry button when connection fails after max reconnection attempts
 - Real microphone level indicator using Web Audio API AnalyserNode

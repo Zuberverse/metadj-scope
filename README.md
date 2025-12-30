@@ -219,11 +219,13 @@ Complete platform documentation extracted from official sources:
 - `docs/scope.md` - Hackathon brief and requirements
 - `docs/scope-technical.md` - Project-specific technical decisions
 - `docs/strategy.md` - Goals, constraints, decision points
-- `docs/architecture.md` - System design
+- `docs/architecture.md` - System design and WebRTC flow
+- `docs/soundscape-mechanics.md` - **How Soundscape works** (latent cache, noise, FPS, transitions)
 - `docs/features/avatar-mvp-spec.md` - MVP requirements
+- `docs/features/soundscape-mvp-spec.md` - Soundscape specification
 - `docs/research.md` - Research findings and validation notes
 - `docs/nexus-daydream-reference.md` - StreamDiffusion patterns from MetaDJ Nexus
-- `docs/future-integration-strategy.md` - Post-hackathon integration opportunities (custom apps, TouchDesigner, architecture)
+- `docs/future-integration-strategy.md` - Post-hackathon integration opportunities
 
 ### Reference
 - `docs/api/` - API integration notes
