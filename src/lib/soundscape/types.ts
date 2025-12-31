@@ -233,8 +233,11 @@ export interface AspectRatioConfig {
 }
 
 export const ASPECT_PRESETS: Record<string, AspectRatioConfig> = {
-  widescreen: { mode: "16:9", resolution: { width: 1024, height: 576 } },
-  portrait: { mode: "9:16", resolution: { width: 480, height: 832 } },
+  // Dimensions must be divisible by 64 for diffusion models
+  // 768×448 ≈ 16:9 (344K pixels) - balanced quality/FPS (~12-15 FPS)
+  widescreen: { mode: "16:9", resolution: { width: 768, height: 448 } },
+  // 320×576 is the Daydream default for longlive (184K pixels, ~15-20 FPS)
+  portrait: { mode: "9:16", resolution: { width: 320, height: 576 } },
 };
 
 export const DEFAULT_ASPECT_RATIO: AspectRatioConfig = ASPECT_PRESETS.widescreen;
