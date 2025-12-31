@@ -1,6 +1,6 @@
 # Changelog
 
-**Last Modified**: 2025-12-30 21:15 EST
+**Last Modified**: 2025-12-30 21:30 EST
 
 All notable changes to this project will be documented in this file.
 
@@ -86,12 +86,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Beat modifiers now deterministic** (cycling through array) instead of random selection to reduce prompt thrashing
 - **Prompt sending logic simplified** - always send prompts directly, add transition object only when blending between prompts
 - **Debug logging for prompts** in dev mode - console logs `[Scope] Sending prompt:` to verify prompt updates are being sent
-- **Resolution optimized for FPS** - widescreen now 768×448 (~12-15 FPS), portrait 320×576 (~15-20 FPS); dimensions must be divisible by 64 for diffusion models
+- **Resolution optimized for FPS** - widescreen now 576×320, portrait 320×576 (both ~15-20 FPS, Daydream defaults); dimensions must be divisible by 64
 - **Energy spike prompt selection now deterministic** - cycles through variations instead of random selection to prevent jarring visual jumps
+- **Pipeline load params now conditional** - `vace_enabled` only passed for `longlive` pipeline (other pipelines may not accept it)
 
 ### Validated
-- All 5 pipeline models downloaded on RunPod instance (longlive, krea-realtime-video, streamdiffusionv2, reward-forcing, passthrough)
-- No first-run download delays—can switch pipelines instantly
+- `longlive` and `krea-realtime-video` pipelines working on RunPod instance
+- `streamdiffusionv2` requires manual model download: `uv run download_models --pipeline streamdiffusionv2`
+- `passthrough` ready (no model required)
 
 ### Fixed
 - Soundscape disconnect now clears the data channel and stops ambient mode

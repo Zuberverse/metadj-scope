@@ -15,7 +15,7 @@ import { ThemeSelector } from "./ThemeSelector";
 import { AnalysisMeter } from "./AnalysisMeter";
 import { AspectRatioToggle } from "./AspectRatioToggle";
 
-// Default pipeline for Soundscape (supports VACE + smooth transitions)
+// Default pipeline for Soundscape (longlive = stylized, smooth transitions)
 const DEFAULT_PIPELINE = "longlive";
 
 // Reconnection configuration
@@ -180,11 +180,14 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
         throw new Error("Scope server is not healthy. Is the pod running?");
       }
 
-      const loadParams = {
+      // Only pass vace_enabled for longlive (other pipelines may not accept it)
+      const loadParams: Record<string, unknown> = {
         width: aspectRatio.resolution.width,
         height: aspectRatio.resolution.height,
-        vace_enabled: false,
       };
+      if (DEFAULT_PIPELINE === "longlive") {
+        loadParams.vace_enabled = false;
+      }
       await prepareScopePipeline({
         scopeClient,
         pipelineId: DEFAULT_PIPELINE,

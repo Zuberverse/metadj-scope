@@ -1,6 +1,6 @@
 # Soundscape Technical Mechanics
 
-**Last Modified**: 2025-12-30 21:00 EST
+**Last Modified**: 2025-12-30 21:30 EST
 **Status**: Active
 
 ## Purpose
@@ -158,7 +158,7 @@ Depends on resolution and GPU:
 | 1024×576 | 590K | ~6-10 FPS |
 
 **Current Soundscape defaults** (dimensions must be divisible by 64):
-- Widescreen (16:9): 768×448 → ~12-15 FPS
+- Widescreen (16:9): 576×320 → ~15-20 FPS (Daydream default flipped)
 - Portrait (9:16): 320×576 → ~15-20 FPS (Daydream default)
 
 ### Why Low FPS Still Feels Smooth
