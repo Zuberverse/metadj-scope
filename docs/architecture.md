@@ -1,6 +1,6 @@
 # Architecture - MetaDJ Scope
 
-**Last Modified**: 2025-12-30 20:45 EST
+**Last Modified**: 2025-12-30 21:00 EST
 **Status**: Active
 
 ## Purpose
@@ -111,9 +111,9 @@ Each experience page shows its own Scope connection status in the header.
 
 **Default Pipeline**: `longlive`
 
-**Load Params** (based on aspect ratio):
-- 16:9: 1024x576
-- 9:16: 480x832
+**Load Params** (based on aspect ratio, dimensions must be divisible by 64):
+- 16:9: 768×448 (~12-15 FPS)
+- 9:16: 320×576 (~15-20 FPS, Daydream default)
 
 **Rationale**: `longlive` provides stable output and smooth prompt transitions for audio-reactive visuals.
 

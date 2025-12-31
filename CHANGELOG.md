@@ -86,6 +86,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Beat modifiers now deterministic** (cycling through array) instead of random selection to reduce prompt thrashing
 - **Prompt sending logic simplified** - always send prompts directly, add transition object only when blending between prompts
 - **Debug logging for prompts** in dev mode - console logs `[Scope] Sending prompt:` to verify prompt updates are being sent
+- **Resolution optimized for FPS** - widescreen now 768×448 (~12-15 FPS), portrait 320×576 (~15-20 FPS); dimensions must be divisible by 64 for diffusion models
+- **Energy spike prompt selection now deterministic** - cycles through variations instead of random selection to prevent jarring visual jumps
 
 ### Validated
 - All 5 pipeline models downloaded on RunPod instance (longlive, krea-realtime-video, streamdiffusionv2, reward-forcing, passthrough)

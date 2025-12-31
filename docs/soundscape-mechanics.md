@@ -1,6 +1,6 @@
 # Soundscape Technical Mechanics
 
-**Last Modified**: 2025-12-30 20:45 EST
+**Last Modified**: 2025-12-30 21:00 EST
 **Status**: Active
 
 ## Purpose
@@ -153,14 +153,13 @@ Depends on resolution and GPU:
 | Resolution | Pixels | Expected FPS (RTX Pro 6000) |
 |------------|--------|----------------------------|
 | 320×576 | 184K | ~15-20 FPS |
-| 480×832 | 400K | ~10-12 FPS |
+| 768×448 | 344K | ~12-15 FPS |
 | 512×512 | 262K | ~12-15 FPS |
-| 640×360 | 230K | ~10-15 FPS |
 | 1024×576 | 590K | ~6-10 FPS |
 
-**Current Soundscape defaults**:
-- Widescreen (16:9): 1024×576 → ~6-10 FPS
-- Portrait (9:16): 480×832 → ~10-12 FPS
+**Current Soundscape defaults** (dimensions must be divisible by 64):
+- Widescreen (16:9): 768×448 → ~12-15 FPS
+- Portrait (9:16): 320×576 → ~15-20 FPS (Daydream default)
 
 ### Why Low FPS Still Feels Smooth
 
@@ -250,10 +249,12 @@ On beats, additional modifiers are added: "rhythmic pulse", "beat-synchronized f
 
 | Action | Effect |
 |--------|--------|
-| `pulse_noise` | Temporarily boost noise_scale |
-| `cache_reset` | Clear latent cache (dramatic jump) |
-| `prompt_cycle` | Cycle through prompt variations |
-| `transition_trigger` | Random prompt variation with blend |
+| `pulse_noise` | Temporarily boost noise_scale (default for all themes) |
+| `cache_reset` | Clear latent cache (dramatic jump, not used) |
+| `prompt_cycle` | Cycle through prompt variations deterministically |
+| `transition_trigger` | Cycle through prompt variations with blend (deterministic) |
+
+**Note**: All prompt variation selection is now deterministic (cycling) instead of random to prevent jarring visual jumps.
 
 ---
 
