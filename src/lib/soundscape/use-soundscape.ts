@@ -18,6 +18,16 @@ import type {
 } from "./types";
 
 // ============================================================================
+// Constants - Single Source of Truth
+// ============================================================================
+
+/** Default theme ID when no theme is specified or lookup fails */
+const DEFAULT_THEME_ID = "cosmic-voyage";
+
+/** Get the default theme object */
+const getDefaultTheme = (): Theme => THEMES_BY_ID[DEFAULT_THEME_ID];
+
+// ============================================================================
 // Hook Interface
 // ============================================================================
 
@@ -75,10 +85,10 @@ export function useSoundscape(options: UseSoundscapeOptions = {}): UseSoundscape
     debug = false,
   } = options;
 
-  // Compute initial theme once
+  // Compute initial theme once - uses single source of truth for fallback
   const getInitialTheme = useCallback((): Theme => {
     if (typeof initialTheme === "string") {
-      return THEMES_BY_ID[initialTheme] ?? THEMES_BY_ID["cosmic-voyage"];
+      return THEMES_BY_ID[initialTheme] ?? getDefaultTheme();
     }
     return createCustomTheme(initialTheme);
   }, [initialTheme]);
@@ -100,6 +110,15 @@ export function useSoundscape(options: UseSoundscapeOptions = {}): UseSoundscape
 
   // State - initialize theme synchronously
   const [currentTheme, setCurrentTheme] = useState<Theme>(() => getInitialTheme());
+
+  // CRITICAL: Use a ref to track the CURRENT theme for closures
+  // This prevents stale closure issues where callbacks capture old theme state
+  const currentThemeRef = useRef<Theme>(currentTheme);
+
+  // Keep the ref in sync with state
+  useEffect(() => {
+    currentThemeRef.current = currentTheme;
+  }, [currentTheme]);
 
   const [state, setState] = useState<SoundscapeState>(() => ({
     playback: "idle",
@@ -132,8 +151,8 @@ export function useSoundscape(options: UseSoundscapeOptions = {}): UseSoundscape
       if (typeof themeIdOrInput === "string") {
         const preset = THEMES_BY_ID[themeIdOrInput];
         if (!preset) {
-          log(`Theme "${themeIdOrInput}" not found, using cosmic-voyage`);
-          return THEMES_BY_ID["cosmic-voyage"];
+          log(`Theme "${themeIdOrInput}" not found, using default`);
+          return getDefaultTheme();
         }
         return preset;
       }
@@ -145,16 +164,67 @@ export function useSoundscape(options: UseSoundscapeOptions = {}): UseSoundscape
   const setTheme = useCallback(
     (themeIdOrInput: string | CustomThemeInput) => {
       const theme = resolveTheme(themeIdOrInput);
+
+      // DEBUG: Log theme changes with stack trace to identify all callers
+      if (debug) {
+        console.log(`[Soundscape] 🎨 setTheme called: "${theme.id}" (${theme.name})`);
+        if (theme.id === "cosmic-voyage") {
+          console.trace("[Soundscape] Cosmic theme set - trace:");
+        }
+      }
+
       setCurrentTheme(theme);
+      currentThemeRef.current = theme; // Immediately update ref too
+
+      // Clear any pending params to prevent stale theme params from being sent
+      if (parameterSenderRef.current) {
+        parameterSenderRef.current.clearPending();
+      }
 
       if (mappingEngineRef.current) {
         mappingEngineRef.current.setTheme(theme);
       }
 
+      // If ambient mode is running, restart it with new theme
+      // (ambient captures theme in closure, so need fresh start)
+      if (ambientIntervalRef.current) {
+        log("Restarting ambient for new theme");
+        // Clear old interval
+        clearInterval(ambientIntervalRef.current);
+        ambientIntervalRef.current = null;
+
+        // Send new prompt immediately with fresh theme
+        if (parameterSenderRef.current && dataChannelRef.current?.readyState === "open") {
+          const newBasePrompt = `${theme.basePrompt}, ${theme.styleModifiers.join(", ")}, calm atmosphere, gentle flow`;
+          const newParams: ScopeParameters = {
+            prompts: [{ text: newBasePrompt, weight: 1.0 }],
+            denoisingSteps: [1000, 750, 500, 250],
+            noiseScale: 0.5,
+            resetCache: true,
+          };
+          parameterSenderRef.current.send(newParams);
+          parametersRef.current = newParams;
+          setParameters(newParams);
+
+          // Restart keep-alive with new theme
+          const capturedPrompt = newBasePrompt;
+          ambientIntervalRef.current = setInterval(() => {
+            if (!parameterSenderRef.current) return;
+            ambientPhaseRef.current += 0.01;
+            const phase = ambientPhaseRef.current;
+            parameterSenderRef.current.send({
+              prompts: [{ text: capturedPrompt, weight: 1.0 }],
+              denoisingSteps: [1000, 750, 500, 250],
+              noiseScale: 0.48 + 0.04 * Math.sin(phase),
+            });
+          }, 2000);
+        }
+      }
+
       setState((prev) => ({ ...prev, activeTheme: theme }));
       log("Theme changed:", theme.name);
     },
-    [resolveTheme, log]
+    [resolveTheme, log, debug]
   );
 
   // Note: Theme is initialized synchronously in useState above
@@ -186,9 +256,18 @@ export function useSoundscape(options: UseSoundscapeOptions = {}): UseSoundscape
         await analyzer.initialize(audioElement);
         analyzerRef.current = analyzer;
 
-        // Create mapping engine with current theme
-        const theme = currentTheme || THEMES_BY_ID["cosmic-voyage"];
-        mappingEngineRef.current = new MappingEngine(theme);
+        // Reuse existing mapping engine if available, otherwise create new one
+        // CRITICAL: Use ref to get CURRENT theme, not stale closure value
+        const theme = currentThemeRef.current;
+
+        if (mappingEngineRef.current) {
+          // Engine exists - update to current theme
+          mappingEngineRef.current.setTheme(theme);
+          log("Reusing mapping engine with theme:", theme.name);
+        } else {
+          mappingEngineRef.current = new MappingEngine(theme);
+          log("Created mapping engine with theme:", theme.name);
+        }
 
         // Create parameter sender
         parameterSenderRef.current = new ParameterSender(updateRate);
@@ -208,7 +287,7 @@ export function useSoundscape(options: UseSoundscapeOptions = {}): UseSoundscape
         throw error;
       }
     },
-    [currentTheme, updateRate, log]
+    [updateRate, log] // Removed currentTheme - we use currentThemeRef instead
   );
 
   const disconnectAudio = useCallback(() => {
@@ -246,10 +325,21 @@ export function useSoundscape(options: UseSoundscapeOptions = {}): UseSoundscape
   // Analysis Control
   // ============================================================================
 
+  // Debug: track analysis frames for periodic logging
+  const analysisFrameCountRef = useRef(0);
+
   const handleAnalysis = useCallback(
     (analysis: AnalysisState) => {
       const now = performance.now();
       const shouldUpdateUi = now - lastUiUpdateRef.current >= uiUpdateIntervalMs;
+
+      // Debug: Log that analysis is running every ~3 seconds (at 30Hz UI rate)
+      analysisFrameCountRef.current++;
+      if (debug && analysisFrameCountRef.current % 90 === 0) {
+        const energy = analysis.derived.energy;
+        const brightness = analysis.derived.brightness;
+        log(`📊 Audio analysis active - Energy: ${energy.toFixed(3)}, Brightness: ${brightness.toFixed(3)}, Beat: ${analysis.beat.isBeat}`);
+      }
 
       // Generate Scope parameters
       if (mappingEngineRef.current) {
@@ -312,9 +402,15 @@ export function useSoundscape(options: UseSoundscapeOptions = {}): UseSoundscape
     }
 
     // Initialize mapping engine if needed (without audio analyzer)
+    // CRITICAL: Use ref to get CURRENT theme, not stale closure value
+    const theme = currentThemeRef.current;
+
     if (!mappingEngineRef.current) {
-      const theme = currentTheme || THEMES_BY_ID["cosmic-voyage"];
       mappingEngineRef.current = new MappingEngine(theme);
+      log("Created mapping engine for ambient with theme:", theme.name);
+    } else {
+      // Ensure engine has the current theme (setTheme handles cache reset if theme changed)
+      mappingEngineRef.current.setTheme(theme);
     }
 
     // Initialize parameter sender if needed and connect data channel
@@ -325,48 +421,43 @@ export function useSoundscape(options: UseSoundscapeOptions = {}): UseSoundscape
 
     log("Starting ambient mode");
 
-    // Generate ambient parameters at ~10fps with gentle variations
-    ambientIntervalRef.current = setInterval(() => {
-      if (!mappingEngineRef.current || !parameterSenderRef.current) return;
+    // AMBIENT MODE: Send ONE static prompt, then just keep connection alive
+    // Prompt only changes when theme is toggled (handled by setTheme)
+    // NOTE: `theme` is already declared above from currentThemeRef.current
+    const basePrompt = `${theme.basePrompt}, ${theme.styleModifiers.join(", ")}, calm atmosphere, gentle flow`;
 
-      // Create gentle, slowly varying "ambient" analysis state
-      ambientPhaseRef.current += 0.02;
+    // Send initial ambient params once
+    const ambientParams: ScopeParameters = {
+      prompts: [{ text: basePrompt, weight: 1.0 }],
+      denoisingSteps: [1000, 750, 500, 250],
+      noiseScale: 0.5,
+      resetCache: true, // Fresh start for ambient
+    };
+
+    parameterSenderRef.current.send(ambientParams);
+    parametersRef.current = ambientParams;
+    setParameters(ambientParams);
+    log("Ambient: sent initial prompt for theme:", theme.name);
+
+    // Keep-alive interval - just gentle noise_scale variation, NO prompt changes
+    ambientIntervalRef.current = setInterval(() => {
+      if (!parameterSenderRef.current) return;
+
+      ambientPhaseRef.current += 0.01;
       const phase = ambientPhaseRef.current;
 
-      // Gentle sine wave oscillations for a calm, ambient feel
-      const ambientAnalysis: AnalysisState = {
-        features: {
-          rms: 0.05 + 0.03 * Math.sin(phase),
-          spectralCentroid: 800 + 200 * Math.sin(phase * 0.7),
-          spectralFlatness: 0.2 + 0.1 * Math.sin(phase * 0.5),
-          spectralRolloff: 4000,
-          zcr: 0.1,
-        },
-        derived: {
-          energy: 0.15 + 0.1 * Math.sin(phase * 0.3), // Low energy, gentle waves
-          brightness: 0.4 + 0.2 * Math.sin(phase * 0.5),
-          texture: 0.3 + 0.15 * Math.sin(phase * 0.4),
-          energyDerivative: 0.01 * Math.cos(phase * 0.3),
-          peakEnergy: 0.25,
-        },
-        beat: {
-          isBeat: false,
-          bpm: null,
-          confidence: 0,
-          lastBeatTime: 0,
-        },
+      // Send ONLY noise_scale updates - same prompt, just subtle evolution
+      const keepAliveParams: ScopeParameters = {
+        prompts: [{ text: basePrompt, weight: 1.0 }], // Same prompt every time
+        denoisingSteps: [1000, 750, 500, 250],
+        noiseScale: 0.48 + 0.04 * Math.sin(phase), // Subtle variation
       };
 
-      const params = mappingEngineRef.current.computeParameters(ambientAnalysis);
-      parametersRef.current = params;
-      setParameters(params);
-
-      // Send to Scope if connected
-      parameterSenderRef.current.send(params);
-    }, 100); // 10fps for ambient mode
+      parameterSenderRef.current.send(keepAliveParams);
+    }, 2000); // Very slow - just keep connection alive
 
     setState((prev) => ({ ...prev, playback: "playing" }));
-  }, [currentTheme, updateRate, log]);
+  }, [updateRate, log]); // Removed currentTheme - we use currentThemeRef instead
 
   const stopAmbient = useCallback(() => {
     if (ambientIntervalRef.current) {

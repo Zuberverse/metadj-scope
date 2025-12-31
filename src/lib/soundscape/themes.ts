@@ -28,12 +28,12 @@ export const COSMIC_VOYAGE: Theme = {
     "floating geometric structures, ethereal light particles, " +
     "deep space atmosphere, stars and galaxies rushing past, " +
     "magenta energy accents, epic journey forward",
-  styleModifiers: ["cinematic lighting", "depth of field", "volumetric fog"],
+  styleModifiers: ["cinematic lighting", "depth of field", "volumetric fog", "high definition", "ultra detailed"],
   negativePrompt: "blurry, low quality, text, watermark, human faces",
 
   ranges: {
     denoisingSteps: { min: [700, 400], max: [1000, 750, 500, 250] },
-    noiseScale: { min: 0.3, max: 0.95 }, // Widened range
+    noiseScale: { min: 0.5, max: 0.7 }, // Higher floor for more evolution
     vaceScale: { min: 0.5, max: 1.5 },
     transitionSpeed: { min: 4, max: 16 },
   },
@@ -73,12 +73,12 @@ export const COSMIC_VOYAGE: Theme = {
   promptVariations: {
     trigger: "energy_spike",
     prompts: [
-      "cosmic explosion, supernova burst, intense neon flare, shockwave",
-      "wormhole opening, reality bending, dimensional rift, space tear",
-      "stellar birth, nebula ignition, cosmic genesis, star formation",
-      "galaxy collision, cosmic merge, interstellar fusion, space cataclysm",
+      // FIRE VERSION - orange/red solar flares (completely different color palette)
+      "solar flare explosion, molten sun surface, orange and red fire, burning plasma streams, intense heat waves, fiery corona burst, magma flowing through space",
+      // ICE VERSION - blue/white frozen crystals (opposite of the base purple/cyan)
+      "frozen crystal cavern, ice blue glacial formations, white snow particles, arctic aurora, crystalline structures, frozen in time, sub-zero deep space",
     ],
-    blendDuration: 6, // Faster transitions
+    blendDuration: 4, // Fast transitions so shift is visible
   },
 };
 
@@ -96,12 +96,12 @@ export const NEON_FOUNDRY: Theme = {
     "holographic displays in cyan, purple ambient lighting, " +
     "gothic architecture meets technology, creative forge, " +
     "magenta sparks flying past, AI foundry exploration",
-  styleModifiers: ["industrial aesthetic", "dramatic shadows", "neon accents"],
+  styleModifiers: ["industrial aesthetic", "dramatic shadows", "neon accents", "high definition", "sharp details"],
   negativePrompt: "outdoor, nature, daylight, cartoon",
 
   ranges: {
     denoisingSteps: { min: [800, 500], max: [1000, 800, 600, 400] },
-    noiseScale: { min: 0.4, max: 0.9 }, // Widened range
+    noiseScale: { min: 0.5, max: 0.7 }, // Higher floor for more evolution
     vaceScale: { min: 0.8, max: 1.8 },
     transitionSpeed: { min: 6, max: 20 },
   },
@@ -165,12 +165,12 @@ export const DIGITAL_FOREST: Theme = {
     "floating particles streaming by, cyan and magenta glow, " +
     "mystical atmosphere, tech-organic fusion, " +
     "purple shadows, dynamic forest exploration",
-  styleModifiers: ["magical realism", "soft glow", "ethereal"],
+  styleModifiers: ["magical realism", "soft glow", "ethereal", "high definition", "crisp details"],
   negativePrompt: "urban, concrete, harsh lighting, realistic",
 
   ranges: {
     denoisingSteps: { min: [750, 450], max: [1000, 750, 500, 250] },
-    noiseScale: { min: 0.35, max: 0.8 },
+    noiseScale: { min: 0.48, max: 0.65 }, // Higher floor for more evolution
     vaceScale: { min: 0.6, max: 1.4 },
     transitionSpeed: { min: 8, max: 24 },
   },
@@ -231,12 +231,12 @@ export const SYNTHWAVE_HIGHWAY: Theme = {
     "synthwave landscape, neon grid highway stretching ahead, " +
     "sunset gradient sky in purple and magenta, palm trees rushing past, " +
     "retro sports car POV, vaporwave aesthetic, cyan accent lights, motion blur",
-  styleModifiers: ["80s aesthetic", "chromatic aberration", "scan lines"],
+  styleModifiers: ["80s aesthetic", "chromatic aberration", "scan lines", "high definition", "vibrant colors"],
   negativePrompt: "modern, realistic, daytime, cloudy",
 
   ranges: {
     denoisingSteps: { min: [700, 400], max: [950, 700, 450] },
-    noiseScale: { min: 0.4, max: 0.95 },
+    noiseScale: { min: 0.5, max: 0.72 }, // Higher floor for more evolution
     vaceScale: { min: 0.4, max: 1.2 },
     transitionSpeed: { min: 4, max: 12 },
   },
@@ -303,12 +303,14 @@ export const CRYSTAL_SANCTUARY: Theme = {
     "dramatic lighting",
     "gothic architecture",
     "magical realism",
+    "high definition",
+    "intricate details",
   ],
   negativePrompt: "modern, outdoor, daylight, minimalist",
 
   ranges: {
     denoisingSteps: { min: [800, 500], max: [1000, 800, 600, 400] },
-    noiseScale: { min: 0.35, max: 0.8 },
+    noiseScale: { min: 0.48, max: 0.65 }, // Higher floor for more evolution
     vaceScale: { min: 0.7, max: 1.6 },
     transitionSpeed: { min: 8, max: 20 },
   },
@@ -424,7 +426,7 @@ export function createCustomTheme(input: CustomThemeInput): Theme {
 
     ranges: {
       denoisingSteps: { min: [700, 400], max: [1000, 750, 500, 250] },
-      noiseScale: { min: 0.3, max: 0.9 },
+      noiseScale: { min: 0.5, max: 0.7 }, // Higher floor for more evolution
       vaceScale: { min: 0.5, max: 1.5 },
       transitionSpeed: { min: 4, max: 16 },
     },

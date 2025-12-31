@@ -200,6 +200,9 @@ export class AudioAnalyzer {
     });
   }
 
+  // Debug: frame counter for periodic logging
+  private debugFrameCount = 0;
+
   private processFeatures(features: MeydaFeatures): void {
     if (!this.isAnalyzing || !this.onAnalysis) return;
 
@@ -211,6 +214,16 @@ export class AudioAnalyzer {
       spectralRolloff: features.spectralRolloff ?? 0,
       zcr: features.zcr ?? 0,
     };
+
+    // Debug: Log audio levels every ~2 seconds (at 86Hz = ~172 frames)
+    this.debugFrameCount++;
+    if (process.env.NODE_ENV === "development" && this.debugFrameCount % 172 === 0) {
+      const rmsDb = rawFeatures.rms > 0 ? 20 * Math.log10(rawFeatures.rms) : -100;
+      console.log(`[AudioAnalyzer] 🎵 RMS: ${rawFeatures.rms.toFixed(4)} (${rmsDb.toFixed(1)} dB), Centroid: ${rawFeatures.spectralCentroid.toFixed(0)} Hz`);
+      if (rawFeatures.rms < 0.001) {
+        console.warn("[AudioAnalyzer] ⚠️ Audio appears silent - is music playing?");
+      }
+    }
 
     // Compute derived metrics
     const derived = this.computeDerived(rawFeatures);

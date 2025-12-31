@@ -1,6 +1,6 @@
 # Changelog
 
-**Last Modified**: 2025-12-30 21:30 EST
+**Last Modified**: 2025-12-30 22:15 EST
 
 All notable changes to this project will be documented in this file.
 
@@ -61,6 +61,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ParameterSender clears pending timers when data channel closes
 - **Denoising steps set to 4-step schedule `[1000, 750, 500, 250]`** for high quality visuals (~15-20 FPS on RTX 6000)
 - **Audio normalization tuned for better sensitivity**: `energyMax: 0.15` (was 0.5), `spectralCentroidMin: 100` (was 200), `spectralCentroidMax: 6000` (was 8000)
+- **noise_scale ranges tightened for visual stability**: All themes now use 0.25–0.65 range (was 0.3–0.95) to prevent chaotic high-noise states
+- **Beat boost intensity reduced**: Base beat response 0.08 (was 0.15), pulse_noise multiplier 0.25 (was 0.5), energy spike boost 0.12 (was 0.25)
+- **Smoothing factor lowered**: 0.15 (was 0.3) for smoother noise_scale transitions between frames
 - **All 5 theme prompts now include flythrough motion language** ("adventurous flythrough", "dynamic camera movement", etc.) for consistent forward-moving visuals
 - Removed vaceScale from mapping engine and parameter smoothing (Soundscape is text-only, no VACE)
 - Removed unused `computeDenoisingSteps()` method from MappingEngine (dead code cleanup)

@@ -1,6 +1,6 @@
 # Soundscape Technical Mechanics
 
-**Last Modified**: 2025-12-30 21:30 EST
+**Last Modified**: 2025-12-30 22:15 EST
 **Status**: Active
 
 ## Purpose
@@ -97,13 +97,16 @@ Frame N+1 output: Similar but evolved image
 
 ```
 noise_scale = 0.0  →  No noise  →  Frozen image (no change)
-noise_scale = 0.3  →  Low noise →  Subtle drift, stable
-noise_scale = 0.6  →  Medium    →  Noticeable evolution
-noise_scale = 0.9  →  High      →  Rapid change, more chaotic
-noise_scale = 1.0  →  Maximum   →  Very unstable
+noise_scale = 0.25 →  Low noise →  Subtle drift, very stable
+noise_scale = 0.4  →  Medium    →  Smooth evolution
+noise_scale = 0.6  →  Higher    →  Noticeable change (upper limit for stability)
+noise_scale = 0.9+ →  Too high  →  Chaotic, breaks coherence (avoid!)
 ```
 
-**In Soundscape**: Audio energy (loudness) drives noise_scale. Loud = more change.
+**In Soundscape**: Audio energy (loudness) drives noise_scale.
+- Theme ranges tightened to **0.25–0.65** for stability (was 0.3–0.95)
+- Beat boosts reduced to prevent ceiling hits
+- Smoothing factor lowered for gradual transitions
 
 ### manage_cache vs reset_cache
 

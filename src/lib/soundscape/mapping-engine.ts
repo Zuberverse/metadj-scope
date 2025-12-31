@@ -18,12 +18,24 @@ import type {
 // ============================================================================
 
 // Intensity descriptors that get appended based on energy levels
+// Reduced set to minimize prompt changes (each change triggers server recache)
 const INTENSITY_DESCRIPTORS = {
-  low: ["calm atmosphere", "serene ambiance", "gentle flow", "peaceful drift"],
-  medium: ["dynamic energy", "flowing motion", "vibrant pulse", "building momentum"],
-  high: ["intense power", "explosive energy", "surging force", "electrifying burst"],
-  peak: ["maximum intensity", "overwhelming power", "reality-bending force", "transcendent explosion"],
+  low: ["calm atmosphere", "gentle flow"],
+  medium: ["dynamic energy", "flowing motion"],
+  high: ["intense power", "surging force"],
+  peak: ["maximum intensity", "transcendent energy"],
 } as const;
+
+// Temporal/positional variations to break attractor loops
+// These cycle slowly (every ~5 seconds) to add variety without triggering constant recaches
+const TEMPORAL_VARIATIONS = [
+  "approaching distant formations",
+  "passing through energy clouds",
+  "structures emerging ahead",
+  "particles streaming past",
+  "light patterns shifting",
+  "depth layers revealing",
+] as const;
 
 // Beat intensity modifiers
 const BEAT_MODIFIERS = [
@@ -40,7 +52,7 @@ export class MappingEngine {
   private theme: Theme;
   private normalization: NormalizationConfig;
   private lastParams: ScopeParameters | null = null;
-  private smoothingFactor = 0.3; // Increased for snappier response
+  private smoothingFactor = 0.15; // Reduced for smoother transitions (was 0.3)
 
   // Beat handling
   private lastBeatTriggerTime = 0;
@@ -50,12 +62,24 @@ export class MappingEngine {
   // Intensity tracking
   private lastIntensityLevel: "low" | "medium" | "high" | "peak" = "low";
   private intensityDescriptorIndex = 0;
-  private framesSinceDescriptorChange = 0;
   private beatModifierIndex = 0;
   private energySpikeVariationIndex = 0;
 
+  // Temporal variation tracking (cycles VERY slowly to avoid visual resets)
+  // Previous: 150 frames = 5s at 30Hz or 15s at 10Hz (ambient) - caused looping
+  // New: 600 frames = 20s at 30Hz or 60s at 10Hz (ambient) - much longer cycles
+  private temporalVariationIndex = 0;
+  private framesSinceTemporalChange = 0;
+  private readonly temporalChangeCycle = 600; // ~20 seconds at 30Hz, ~60s in ambient
+
   // Prompt transition tracking
   private lastPromptText: string | null = null;
+
+  // Theme change flag - triggers cache reset on next parameter computation
+  private pendingCacheReset = false;
+
+  // Debug logging - track last logged theme to avoid spam
+  private lastLoggedTheme: string | null = null;
 
   constructor(
     theme: Theme,
@@ -74,10 +98,51 @@ export class MappingEngine {
    * Update the active theme
    */
   setTheme(theme: Theme): void {
+    const wasThemeChange = this.theme.id !== theme.id;
+    const oldTheme = this.theme.id;
     this.theme = theme;
     this.promptVariationIndex = 0;
     this.currentPromptVariation = null;
-    // Don't reset lastPromptText - allows smooth transition to new theme
+
+    // Reset cache when theme changes to break out of previous visual "memory"
+    if (wasThemeChange) {
+      this.pendingCacheReset = true;
+      // Also reset intensity and temporal tracking to start fresh
+      this.lastIntensityLevel = "low";
+      this.temporalVariationIndex = 0;
+      this.framesSinceTemporalChange = 0;
+      this.lastPromptText = null; // Force fresh prompt
+      this.lastLoggedTheme = null; // Force next log
+
+      console.log("[MappingEngine] 🔄 Theme changed:", oldTheme, "→", theme.id);
+    }
+  }
+
+  /**
+   * Get current theme ID (for debugging)
+   */
+  getCurrentThemeId(): string {
+    return this.theme.id;
+  }
+
+  /**
+   * Reset internal state for clean mode transitions (e.g., audio → ambient)
+   * Preserves theme but resets all temporal/intensity tracking
+   */
+  resetState(): void {
+    this.lastParams = null;
+    this.lastBeatTriggerTime = 0;
+    this.promptVariationIndex = 0;
+    this.currentPromptVariation = null;
+    this.lastIntensityLevel = "low";
+    this.intensityDescriptorIndex = 0;
+    this.beatModifierIndex = 0;
+    this.energySpikeVariationIndex = 0;
+    this.temporalVariationIndex = 0;
+    this.framesSinceTemporalChange = 0;
+    this.lastPromptText = null;
+    this.pendingCacheReset = true; // Trigger fresh start
+    console.log("[MappingEngine] State reset for mode transition");
   }
 
   /**
@@ -91,6 +156,15 @@ export class MappingEngine {
    * Compute Scope parameters from audio analysis
    */
   computeParameters(analysis: AnalysisState): ScopeParameters {
+    // DEBUG: Log current theme on every call to catch any unexpected theme switches
+    if (process.env.NODE_ENV === "development") {
+      const themeId = this.theme.id;
+      if (themeId === "cosmic-voyage") {
+        console.warn("[MappingEngine] ⚠️ computeParameters called with COSMIC theme!");
+        console.trace("[MappingEngine] Cosmic theme trace:");
+      }
+    }
+
     const { derived, beat } = analysis;
 
     // Compute base parameter values from mappings
@@ -130,11 +204,17 @@ export class MappingEngine {
 
     // Build final parameters
     // Note: vaceScale omitted - Soundscape uses text-only mode (no VACE)
+    // Check for pending cache reset (e.g., from theme change)
+    const shouldResetCache = beatEffect.resetCache || this.pendingCacheReset;
+    if (this.pendingCacheReset) {
+      this.pendingCacheReset = false; // Consume the flag
+    }
+
     const params: ScopeParameters = {
       prompts,
       denoisingSteps,
       noiseScale,
-      resetCache: beatEffect.resetCache,
+      resetCache: shouldResetCache,
       transition,
     };
 
@@ -267,7 +347,7 @@ export class MappingEngine {
     // Always apply a base noise boost on beats (regardless of configured action)
     // This makes beats universally more impactful
     if (beat.isBeat) {
-      result.noiseBoost = 0.15; // Base beat response
+      result.noiseBoost = 0.08; // Base beat response (reduced from 0.15 for stability)
     }
 
     if (!beatMapping.enabled || !beat.isBeat) {
@@ -290,14 +370,14 @@ export class MappingEngine {
     // Apply beat action
     switch (beatMapping.action) {
       case "pulse_noise":
-        // Increased from 0.3 to 0.5 multiplier for more visible effect
-        result.noiseBoost = Math.max(result.noiseBoost, beatMapping.intensity * 0.5);
+        // Reduced multiplier for stability (was 0.5, now 0.25)
+        result.noiseBoost = Math.max(result.noiseBoost, beatMapping.intensity * 0.25);
         break;
 
       case "cache_reset":
         result.resetCache = true;
-        // Also boost noise on cache reset for extra punch
-        result.noiseBoost = Math.max(result.noiseBoost, 0.3);
+        // Also boost noise on cache reset for extra punch (reduced from 0.3)
+        result.noiseBoost = Math.max(result.noiseBoost, 0.15);
         break;
 
       case "prompt_cycle":
@@ -318,7 +398,7 @@ export class MappingEngine {
             temporal_interpolation_method: "slerp",
           };
         }
-        result.noiseBoost = Math.max(result.noiseBoost, 0.2);
+        result.noiseBoost = Math.max(result.noiseBoost, 0.1);
         break;
 
       case "transition_trigger":
@@ -340,7 +420,7 @@ export class MappingEngine {
             temporal_interpolation_method: "slerp",
           };
         }
-        result.noiseBoost = Math.max(result.noiseBoost, 0.2);
+        result.noiseBoost = Math.max(result.noiseBoost, 0.1);
         break;
     }
 
@@ -349,7 +429,7 @@ export class MappingEngine {
 
   /**
    * Handle energy spike effects (separate from beat detection)
-   * Lowered threshold from 0.3 to 0.12 for more frequent triggers
+   * TESTING: Lowered threshold and increased variation weight for clear visual shift
    */
   private handleEnergySpikeEffects(
     derived: AnalysisState["derived"],
@@ -360,8 +440,8 @@ export class MappingEngine {
       transition: ScopeParameters["transition"];
     }
   ): typeof result {
-    // Energy spike detection - lowered threshold for more responsiveness
-    const energySpikeThreshold = 0.12;
+    // Energy spike detection - VERY LOW threshold for testing
+    const energySpikeThreshold = 0.05; // Was 0.12 - lowered for more triggers
 
     if (
       this.theme.promptVariations?.trigger === "energy_spike" &&
@@ -374,19 +454,32 @@ export class MappingEngine {
       const spikeVariation = variations[this.energySpikeVariationIndex];
 
       // Scale transition weight by how big the spike is
-      const spikeIntensity = Math.min(1, derived.energyDerivative / 0.3);
+      const spikeIntensity = Math.min(1, derived.energyDerivative / 0.15); // Faster ramp to full intensity
+
+      // TESTING: HIGH weight on variation (0.7-0.95) so color shift is OBVIOUS
+      const variationWeight = 0.7 + spikeIntensity * 0.25;
+      const baseWeight = 1 - variationWeight;
+
+      // DEBUG: Log energy spikes
+      if (process.env.NODE_ENV === "development") {
+        console.log(
+          `[MappingEngine] ⚡ ENERGY SPIKE! derivative=${derived.energyDerivative.toFixed(3)}, ` +
+          `intensity=${spikeIntensity.toFixed(2)}, variationWeight=${variationWeight.toFixed(2)}, ` +
+          `prompt="${spikeVariation.slice(0, 40)}..."`
+        );
+      }
 
       result.transition = {
         target_prompts: [
-          { text: spikeVariation, weight: 0.4 + spikeIntensity * 0.3 },
-          { text: this.buildBasePrompt(), weight: 0.6 - spikeIntensity * 0.3 },
+          { text: spikeVariation, weight: variationWeight },
+          { text: this.buildBasePrompt(), weight: baseWeight },
         ],
         num_steps: this.theme.promptVariations.blendDuration,
         temporal_interpolation_method: "slerp",
       };
 
       // Also boost noise on energy spikes
-      result.noiseBoost = Math.max(result.noiseBoost, spikeIntensity * 0.25);
+      result.noiseBoost = Math.max(result.noiseBoost, spikeIntensity * 0.15);
     }
 
     return result;
@@ -411,31 +504,50 @@ export class MappingEngine {
   }
 
   /**
+   * Get temporal variation that cycles slowly to break attractor loops
+   */
+  private getTemporalVariation(): string {
+    this.framesSinceTemporalChange++;
+
+    // Cycle temporal variation every ~5 seconds
+    if (this.framesSinceTemporalChange >= this.temporalChangeCycle) {
+      this.temporalVariationIndex =
+        (this.temporalVariationIndex + 1) % TEMPORAL_VARIATIONS.length;
+      this.framesSinceTemporalChange = 0;
+    }
+
+    return TEMPORAL_VARIATIONS[this.temporalVariationIndex];
+  }
+
+  /**
    * Get an intensity descriptor based on current energy level
-   * Cycles through descriptors to add variety
+   * Only changes when intensity level actually changes (reduces recache triggers)
    */
   private getIntensityDescriptor(energy: number, isBeat: boolean): string {
     const level = this.getIntensityLevel(energy);
-    this.framesSinceDescriptorChange++;
 
-    // Change descriptor when intensity level changes or every ~60 frames (~2 sec)
-    if (level !== this.lastIntensityLevel || this.framesSinceDescriptorChange > 60) {
+    // Only change descriptor when intensity level ACTUALLY changes
+    // Don't cycle within same level - reduces prompt changes that trigger recaching
+    if (level !== this.lastIntensityLevel) {
       this.lastIntensityLevel = level;
-      this.intensityDescriptorIndex =
-        (this.intensityDescriptorIndex + 1) % INTENSITY_DESCRIPTORS[level].length;
-      this.framesSinceDescriptorChange = 0;
+      // Pick first descriptor for the new level (consistent, predictable)
+      this.intensityDescriptorIndex = 0;
     }
 
     const baseDescriptor = INTENSITY_DESCRIPTORS[level][this.intensityDescriptorIndex];
+    const temporalVariation = this.getTemporalVariation();
 
-    // Add beat modifier on beats for extra punch (deterministic cycling, not random)
+    // Combine: intensity + temporal (temporal adds variety without frequent changes)
+    const combined = `${baseDescriptor}, ${temporalVariation}`;
+
+    // Add beat modifier on beats for extra punch (deterministic cycling)
     if (isBeat) {
       this.beatModifierIndex = (this.beatModifierIndex + 1) % BEAT_MODIFIERS.length;
       const beatMod = BEAT_MODIFIERS[this.beatModifierIndex];
-      return `${baseDescriptor}, ${beatMod}`;
+      return `${combined}, ${beatMod}`;
     }
 
-    return baseDescriptor;
+    return combined;
   }
 
   private buildPrompts(
@@ -512,6 +624,10 @@ export class ParameterSender {
   setDataChannel(channel: RTCDataChannel | null): void {
     this.dataChannel = channel;
 
+    if (process.env.NODE_ENV === "development") {
+      console.log("[ParameterSender] Data channel set:", channel ? `readyState=${channel.readyState}` : "null");
+    }
+
     if (!channel) {
       this.pendingParams = null;
       this.sendScheduled = false;
@@ -519,6 +635,21 @@ export class ParameterSender {
         clearTimeout(this.sendTimeoutId);
         this.sendTimeoutId = null;
       }
+    }
+  }
+
+  /**
+   * Clear any pending parameters (call on theme change to prevent stale params)
+   */
+  clearPending(): void {
+    this.pendingParams = null;
+    if (this.sendTimeoutId) {
+      clearTimeout(this.sendTimeoutId);
+      this.sendTimeoutId = null;
+      this.sendScheduled = false;
+    }
+    if (process.env.NODE_ENV === "development") {
+      console.log("[ParameterSender] Pending params cleared");
     }
   }
 
@@ -546,15 +677,24 @@ export class ParameterSender {
       this.sendTimeoutId = null;
 
       if (!this.dataChannel || this.dataChannel.readyState !== "open") {
+        if (process.env.NODE_ENV === "development" && this.pendingParams) {
+          console.warn("[ParameterSender] Dropping params - channel not open:",
+            this.dataChannel ? `state=${this.dataChannel.readyState}` : "no channel");
+        }
         this.pendingParams = null;
         return;
       }
 
       if (this.pendingParams) {
-        this.dataChannel.send(
-          JSON.stringify(this.formatParams(this.pendingParams))
-        );
+        const formatted = this.formatParams(this.pendingParams);
+        this.dataChannel.send(JSON.stringify(formatted));
         this.lastSendTime = performance.now();
+
+        // Log cache resets (important for debugging theme changes)
+        if (process.env.NODE_ENV === "development" && formatted.reset_cache) {
+          console.log("[ParameterSender] Cache reset triggered");
+        }
+
         this.pendingParams = null;
       }
 
@@ -565,11 +705,30 @@ export class ParameterSender {
     }, delay);
   }
 
+  // Track last logged theme for change detection
+  private lastLoggedTheme: string | null = null;
+
   private formatParams(params: ScopeParameters): Record<string, unknown> {
-    // Debug: Log prompt changes (first 80 chars)
+    // Debug: Log theme identification (only when theme changes or ~every 10 seconds)
     if (process.env.NODE_ENV === "development") {
-      const promptPreview = params.prompts[0]?.text.slice(0, 80) + "...";
-      console.log("[Scope] Sending prompt:", promptPreview);
+      const fullPrompt = params.prompts[0]?.text || "";
+      // Extract key theme identifier from prompt
+      let themeHint = "UNKNOWN";
+      if (fullPrompt.includes("cosmic")) themeHint = "COSMIC";
+      else if (fullPrompt.includes("foundry") || fullPrompt.includes("workshop")) themeHint = "FOUNDRY";
+      else if (fullPrompt.includes("forest") || fullPrompt.includes("bioluminescent")) themeHint = "FOREST";
+      else if (fullPrompt.includes("synthwave") || fullPrompt.includes("highway")) themeHint = "SYNTHWAVE";
+      else if (fullPrompt.includes("sanctuary") || fullPrompt.includes("gothic castle")) themeHint = "SANCTUARY";
+
+      // ALWAYS log if cosmic is detected (to catch the snap-back bug)
+      if (themeHint === "COSMIC") {
+        console.warn("[Scope] ⚠️ COSMIC DETECTED:", fullPrompt.slice(0, 80));
+        console.trace("[Scope] Cosmic trace:");
+      } else if (themeHint !== this.lastLoggedTheme) {
+        // Log theme changes
+        console.log("[Scope] Theme:", themeHint);
+        this.lastLoggedTheme = themeHint;
+      }
     }
 
     const formatted: Record<string, unknown> = {
@@ -578,7 +737,7 @@ export class ParameterSender {
       denoising_step_list: params.denoisingSteps,
       noise_scale: params.noiseScale,
       noise_controller: false, // We control noise manually
-      manage_cache: true,
+      manage_cache: true, // Let Scope manage its latent cache
       paused: false, // Ensure generation is running
     };
 
