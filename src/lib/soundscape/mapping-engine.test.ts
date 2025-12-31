@@ -26,7 +26,7 @@ const makeAnalysis = (energy: number, isBeat = false): AnalysisState => ({
   },
 });
 
-// Fixed denoising steps matching Scope UI defaults
+// Fixed denoising steps - 4-step schedule for high quality
 const FIXED_DENOISING_STEPS = [1000, 750, 500, 250];
 
 describe("MappingEngine", () => {
@@ -49,9 +49,13 @@ describe("MappingEngine", () => {
     expect(params.noiseScale).toBeLessThanOrEqual(COSMIC_VOYAGE.ranges.noiseScale.max);
   });
 
-  it("sets resetCache on beat for cache_reset themes", () => {
+  it("boosts noise on beat for pulse_noise themes", () => {
     const engine = new MappingEngine(NEON_FOUNDRY);
-    const params = engine.computeParameters(makeAnalysis(0.5, true));
-    expect(params.resetCache).toBe(true);
+    const paramsNoBeat = engine.computeParameters(makeAnalysis(0.5, false));
+    const paramsWithBeat = engine.computeParameters(makeAnalysis(0.5, true));
+    // Beat should boost noise scale (pulse_noise action)
+    expect(paramsWithBeat.noiseScale).toBeGreaterThan(paramsNoBeat.noiseScale);
+    // Should NOT reset cache (pulse_noise preserves continuity)
+    expect(paramsWithBeat.resetCache).toBeFalsy();
   });
 });

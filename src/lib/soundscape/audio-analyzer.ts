@@ -52,9 +52,9 @@ export class AudioAnalyzer {
 
   constructor(
     normalization: NormalizationConfig = {
-      energyMax: 0.5,
-      spectralCentroidMin: 200,
-      spectralCentroidMax: 8000,
+      energyMax: 0.15, // Lowered - typical RMS peaks at 0.1-0.2
+      spectralCentroidMin: 100, // Lowered - catch bass-heavy content
+      spectralCentroidMax: 6000, // Lowered for more sensitivity
       spectralFlatnessMax: 0.5,
     }
   ) {

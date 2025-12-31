@@ -8,8 +8,8 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useSoundscape, DEFAULT_ASPECT_RATIO } from "@/lib/soundscape";
 import type { AspectRatioConfig } from "@/lib/soundscape";
-import type { IceCandidatePayload } from "@/lib/scope/types";
 import { getScopeClient } from "@/lib/scope/client";
+import { createScopeWebRtcSession, prepareScopePipeline } from "@/lib/scope";
 import { AudioPlayer } from "./AudioPlayer";
 import { ThemeSelector } from "./ThemeSelector";
 import { AnalysisMeter } from "./AnalysisMeter";
@@ -180,152 +180,99 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
         throw new Error("Scope server is not healthy. Is the pod running?");
       }
 
-      // Step 2: Load pipeline
-      setConnectionStatus("Loading pipeline...");
       const loadParams = {
         width: aspectRatio.resolution.width,
         height: aspectRatio.resolution.height,
         vace_enabled: false,
       };
-      const loaded = await scopeClient.loadPipeline(DEFAULT_PIPELINE, loadParams);
-      if (!loaded) {
-        throw new Error(`Failed to load pipeline: ${DEFAULT_PIPELINE}`);
-      }
-      setConnectionStatus("Waiting for pipeline...");
-      const ready = await scopeClient.waitForPipelineLoaded();
-      if (!ready) {
-        throw new Error(`Pipeline failed to load: ${DEFAULT_PIPELINE}`);
-      }
-
-      // Step 3: Get ICE servers
-      setConnectionStatus("Getting ICE config...");
-      const iceConfig = await scopeClient.getIceServers();
-      if (!iceConfig) {
-        throw new Error("Failed to get ICE servers");
-      }
-
-      // Step 4: Create peer connection
-      setConnectionStatus("Creating connection...");
-      const pc = new RTCPeerConnection({
-        iceServers: iceConfig.iceServers,
+      await prepareScopePipeline({
+        scopeClient,
+        pipelineId: DEFAULT_PIPELINE,
+        loadParams,
+        onStatus: setConnectionStatus,
       });
-      peerConnectionRef.current = pc;
 
-      let sessionId: string | null = null;
-      const pendingCandidates: IceCandidatePayload[] = [];
-      pc.onicecandidate = async (event) => {
-        if (!event.candidate) return;
-        const payload: IceCandidatePayload = {
-          candidate: event.candidate.candidate,
-          sdpMid: event.candidate.sdpMid,
-          sdpMLineIndex: event.candidate.sdpMLineIndex,
-        };
-        if (sessionId) {
-          await scopeClient.addIceCandidates(sessionId, [payload]);
-        } else {
-          pendingCandidates.push(payload);
-        }
-      };
-
-      pc.ontrack = (event) => {
-        if (event.track.kind === "video" && event.streams[0]) {
-          setScopeStream(event.streams[0]);
-          setConnectionStatus("Connected");
-        }
-      };
-
-      pc.onconnectionstatechange = () => {
-        if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
-          setScopeError("Connection lost");
-          handleDisconnectScope(false);
-          setReconnectAttempts((prev) => {
-            const newAttempts = prev + 1;
-            if (newAttempts <= MAX_RECONNECT_ATTEMPTS) {
-              setConnectionStatus(`Reconnecting (${newAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
-              reconnectTimeoutRef.current = setTimeout(() => {
-                handleConnectScope();
-              }, RECONNECT_DELAY_MS * newAttempts);
-            } else {
-              setScopeError("Connection failed. Click Retry.");
-            }
-            return newAttempts;
-          });
-        }
-      };
-
-      if (process.env.NODE_ENV === "development") {
-        (window as unknown as { debugPeerConnection: RTCPeerConnection }).debugPeerConnection = pc;
-      }
-
-      pc.addTransceiver("video");
-
-      const dataChannel = pc.createDataChannel("parameters", { ordered: true });
-
-      dataChannel.onopen = () => {
-        dataChannelRef.current = dataChannel;
-        setDataChannel(dataChannel);
-        if (!isPlaying) {
-          startAmbient();
-        }
-      };
-
-      dataChannel.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data);
-          if (message?.type === "stream_stopped") {
-            setScopeError(message.error_message || "Stream stopped");
-            handleDisconnectScope(false);
-          }
-        } catch {
-          // ignore parse errors
-        }
-      };
-
-      dataChannel.onclose = () => {
-        dataChannelRef.current = null;
-        setDataChannel(null);
-        stopAmbient();
-      };
-
-      // Step 5: Create and send offer
-      setConnectionStatus("Exchanging SDP...");
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-
-      const localDesc = pc.localDescription;
-      if (!localDesc) {
-        throw new Error("Failed to create local description");
-      }
-
+      setConnectionStatus("Creating connection...");
+      // Fixed 3-step schedule for good quality/FPS balance (~20-25 fps on RTX 6000)
+      const DENOISING_STEPS = [1000, 750, 500, 250];
       const initialParams = currentTheme
         ? {
           prompts: [{ text: currentTheme.basePrompt, weight: 1.0 }],
           noise_scale: currentTheme.ranges.noiseScale.min,
-          denoising_step_list: currentTheme.ranges.denoisingSteps.min,
+          denoising_step_list: DENOISING_STEPS,
           manage_cache: true,
           paused: false,
         }
         : undefined;
 
-      const answer = await scopeClient.createWebRtcOffer({
-        sdp: localDesc.sdp,
-        type: localDesc.type,
+      const { pc, dataChannel } = await createScopeWebRtcSession({
+        scopeClient,
         initialParameters: initialParams,
+        setupPeerConnection: (connection) => {
+          peerConnectionRef.current = connection;
+          connection.addTransceiver("video");
+        },
+        onTrack: (event) => {
+          if (event.track.kind === "video" && event.streams[0]) {
+            setScopeStream(event.streams[0]);
+            setConnectionStatus("Connected");
+          }
+        },
+        onConnectionStateChange: (connection) => {
+          if (connection.connectionState === "failed" || connection.connectionState === "disconnected") {
+            setScopeError("Connection lost");
+            handleDisconnectScope(false);
+            setReconnectAttempts((prev) => {
+              const newAttempts = prev + 1;
+              if (newAttempts <= MAX_RECONNECT_ATTEMPTS) {
+                setConnectionStatus(`Reconnecting (${newAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
+                reconnectTimeoutRef.current = setTimeout(() => {
+                  handleConnectScope();
+                }, RECONNECT_DELAY_MS * newAttempts);
+              } else {
+                setScopeError("Connection failed. Click Retry.");
+              }
+              return newAttempts;
+            });
+          }
+        },
+        dataChannel: {
+          label: "parameters",
+          options: { ordered: true },
+          onOpen: (channel) => {
+            dataChannelRef.current = channel;
+            setDataChannel(channel);
+            if (!isPlaying) {
+              startAmbient();
+            }
+          },
+          onMessage: (event) => {
+            try {
+              const message = JSON.parse(event.data);
+              if (message?.type === "stream_stopped") {
+                setScopeError(message.error_message || "Stream stopped");
+                handleDisconnectScope(false);
+              }
+            } catch {
+              // ignore parse errors
+            }
+          },
+          onClose: () => {
+            dataChannelRef.current = null;
+            setDataChannel(null);
+            stopAmbient();
+          },
+        },
       });
 
-      if (!answer) {
-        throw new Error("Failed to get answer from Scope");
-      }
-
-      await pc.setRemoteDescription({ sdp: answer.sdp, type: answer.type });
-      sessionId = answer.sessionId;
+      peerConnectionRef.current = pc;
+      dataChannelRef.current = dataChannel ?? null;
       setConnectionStatus("Connected");
       setReconnectAttempts(0);
       setScopeError(null);
 
-      if (pendingCandidates.length > 0) {
-        await scopeClient.addIceCandidates(sessionId, pendingCandidates);
-        pendingCandidates.length = 0;
+      if (process.env.NODE_ENV === "development") {
+        (window as unknown as { debugPeerConnection: RTCPeerConnection }).debugPeerConnection = pc;
       }
 
     } catch (error) {

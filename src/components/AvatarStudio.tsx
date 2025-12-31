@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { getScopeClient } from "@/lib/scope";
-import { DEFAULT_AVATAR_CONFIG, DEFAULT_GENERATION_PARAMS, type IceCandidatePayload } from "@/lib/scope/types";
+import { getScopeClient, createScopeWebRtcSession, prepareScopePipeline } from "@/lib/scope";
+import { DEFAULT_AVATAR_CONFIG, DEFAULT_GENERATION_PARAMS } from "@/lib/scope/types";
 import { WebcamPreview } from "./WebcamPreview";
 import { ReferenceImage } from "./ReferenceImage";
 import { PromptEditor } from "./PromptEditor";
@@ -32,8 +32,6 @@ export function AvatarStudio({ onConnectionChange }: AvatarStudioProps) {
   const webcamStreamRef = useRef<MediaStream | null>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
-  const sessionIdRef = useRef<string | null>(null);
-  const pendingCandidatesRef = useRef<IceCandidatePayload[]>([]);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const userInitiatedRef = useRef(false);
   const startStreamRef = useRef<((options?: { isReconnect?: boolean }) => void) | null>(null);
@@ -92,8 +90,6 @@ export function AvatarStudio({ onConnectionChange }: AvatarStudioProps) {
     }
 
     dataChannelRef.current = null;
-    sessionIdRef.current = null;
-    pendingCandidatesRef.current = [];
     setOutputStream(null);
     setIsConnecting(false);
   }, []);
@@ -247,113 +243,66 @@ export function AvatarStudio({ onConnectionChange }: AvatarStudioProps) {
       try {
         const client = getScopeClient();
 
-        const health = await client.checkHealth();
-        if (health.status !== "ok") {
-          throw new Error("Scope server is not healthy. Is the pod running?");
-        }
-
         const hasServerAsset =
           referenceImage.startsWith("/assets/") || referenceImage.startsWith("assets/");
 
-        setConnectionStatus(`Loading ${DEFAULT_PIPELINE} pipeline...`);
-        const pipelineLoaded = await client.loadPipeline(DEFAULT_PIPELINE, {
-          width: DEFAULT_GENERATION_PARAMS.width,
-          height: DEFAULT_GENERATION_PARAMS.height,
-          vace_enabled: hasServerAsset,
+        await prepareScopePipeline({
+          scopeClient: client,
+          pipelineId: DEFAULT_PIPELINE,
+          loadParams: {
+            width: DEFAULT_GENERATION_PARAMS.width,
+            height: DEFAULT_GENERATION_PARAMS.height,
+            vace_enabled: hasServerAsset,
+          },
+          onStatus: setConnectionStatus,
         });
-        if (!pipelineLoaded) {
-          throw new Error(`Failed to load ${DEFAULT_PIPELINE} pipeline`);
-        }
-
-        setConnectionStatus("Waiting for pipeline...");
-        const ready = await client.waitForPipelineLoaded();
-        if (!ready) {
-          throw new Error(`Pipeline failed to load: ${DEFAULT_PIPELINE}`);
-        }
-
-        setConnectionStatus("Fetching ICE servers...");
-        const iceServers = await client.getIceServers();
-        if (!iceServers) {
-          throw new Error("Failed to fetch ICE servers");
-        }
 
         setConnectionStatus("Creating WebRTC connection...");
-        const pc = new RTCPeerConnection({ iceServers: iceServers.iceServers });
-        peerConnectionRef.current = pc;
-
-        videoTracks.forEach((track) => {
-          pc.addTrack(track, inputStream);
-        });
-
-        pc.ontrack = (event) => {
-          if (event.streams && event.streams[0]) {
-            outputStreamRef.current = event.streams[0];
-            setOutputStream(event.streams[0]);
-            setConnectionStatus("Connected - Receiving video");
-          }
-        };
-
-        pc.onconnectionstatechange = () => {
-          if (pc.connectionState === "failed" || pc.connectionState === "disconnected") {
-            handleConnectionLost("WebRTC connection lost");
-          }
-        };
-
-        pc.onicecandidate = async (event) => {
-          if (!event.candidate) return;
-
-          const payload = {
-            candidate: event.candidate.candidate,
-            sdpMid: event.candidate.sdpMid,
-            sdpMLineIndex: event.candidate.sdpMLineIndex,
-          };
-
-          if (sessionIdRef.current) {
-            await client.addIceCandidates(sessionIdRef.current, [payload]);
-          } else {
-            pendingCandidatesRef.current.push(payload);
-          }
-        };
-
-        dataChannelRef.current = pc.createDataChannel("parameters", { ordered: true });
-        dataChannelRef.current.onopen = () => {
-          setConnectionStatus("Connected - Parameters ready");
-        };
-        dataChannelRef.current.onclose = () => {
-          handleConnectionLost("Data channel closed");
-        };
-        dataChannelRef.current.onmessage = (event) => {
-          try {
-            const message = JSON.parse(event.data);
-            if (message.type === "stream_stopped") {
-              handleConnectionLost(message.error_message || "Scope stream stopped");
-            }
-          } catch (parseError) {
-            console.warn("[AvatarStudio] Unhandled data channel message:", parseError);
-          }
-        };
-
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-
-        setConnectionStatus("Exchanging SDP...");
-        const response = await client.createWebRtcOffer({
-          sdp: offer.sdp || "",
-          type: offer.type,
+        const { pc, dataChannel } = await createScopeWebRtcSession({
+          scopeClient: client,
           initialParameters: buildInitialParameters(),
+          setupPeerConnection: (connection) => {
+            peerConnectionRef.current = connection;
+            videoTracks.forEach((track) => {
+              connection.addTrack(track, inputStream);
+            });
+          },
+          onTrack: (event) => {
+            if (event.streams && event.streams[0]) {
+              outputStreamRef.current = event.streams[0];
+              setOutputStream(event.streams[0]);
+              setConnectionStatus("Connected - Receiving video");
+            }
+          },
+          onConnectionStateChange: (connection) => {
+            if (connection.connectionState === "failed" || connection.connectionState === "disconnected") {
+              handleConnectionLost("WebRTC connection lost");
+            }
+          },
+          dataChannel: {
+            label: "parameters",
+            options: { ordered: true },
+            onOpen: () => {
+              setConnectionStatus("Connected - Parameters ready");
+            },
+            onClose: () => {
+              handleConnectionLost("Data channel closed");
+            },
+            onMessage: (event) => {
+              try {
+                const message = JSON.parse(event.data);
+                if (message.type === "stream_stopped") {
+                  handleConnectionLost(message.error_message || "Scope stream stopped");
+                }
+              } catch (parseError) {
+                console.warn("[AvatarStudio] Unhandled data channel message:", parseError);
+              }
+            },
+          },
         });
 
-        if (!response) {
-          throw new Error("Failed to establish WebRTC session");
-        }
-
-        sessionIdRef.current = response.sessionId;
-        await pc.setRemoteDescription({ type: response.type, sdp: response.sdp });
-
-        if (pendingCandidatesRef.current.length > 0) {
-          await client.addIceCandidates(sessionIdRef.current, pendingCandidatesRef.current);
-          pendingCandidatesRef.current = [];
-        }
+        peerConnectionRef.current = pc;
+        dataChannelRef.current = dataChannel ?? null;
         setConnectionStatus("Connected");
         resetReconnect();
       } catch (err) {
@@ -561,7 +510,7 @@ export function AvatarStudio({ onConnectionChange }: AvatarStudioProps) {
               disabled={!isStreaming || isConnecting}
               className="py-4 px-6 glass-radiant bg-scope-cyan/20 hover:bg-scope-cyan text-cyan-100 hover:text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.4em] transition-all duration-500 disabled:opacity-20 disabled:grayscale"
             >
-              Update Neural Weights
+              Apply Updates
             </button>
             <p className="text-[9px] font-bold text-white/20 uppercase tracking-widest leading-relaxed text-center">
               Re-synchronize prompt and <br /> identity lock in real-time.

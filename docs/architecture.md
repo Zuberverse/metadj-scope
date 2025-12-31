@@ -1,6 +1,6 @@
 # Architecture - MetaDJ Scope
 
-**Last Modified**: 2025-12-30 17:31 EST
+**Last Modified**: 2025-12-30 20:45 EST
 **Status**: Active
 
 ## Purpose
@@ -41,7 +41,39 @@ Each experience page shows its own Scope connection status in the header.
 - `src/lib/soundscape/mapping-engine.ts` - Audio-to-parameter mapping
 - `src/lib/soundscape/use-soundscape.ts` - React orchestration + throttled UI updates
 - `src/lib/scope/client.ts` - Scope API + WebRTC integration
+- `src/lib/scope/webrtc.ts` - Shared WebRTC session helper
+- `src/lib/scope/pipeline.ts` - Shared health + pipeline readiness helper
 - `src/components/soundscape/*` - UI controls and visualization
+
+### Audio Analysis Configuration
+
+**Normalization Defaults** (tuned for typical music):
+| Parameter | Value | Rationale |
+|-----------|-------|-----------|
+| `energyMax` | 0.15 | Typical RMS peaks at 0.1-0.2; lower = more sensitivity |
+| `spectralCentroidMin` | 100 Hz | Catches bass-heavy content |
+| `spectralCentroidMax` | 6000 Hz | More sensitivity across spectrum |
+| `spectralFlatnessMax` | 0.5 | Standard ceiling |
+
+**Update Rates**:
+- Meyda analysis: ~86 Hz (buffer 512 at 44.1kHz)
+- Mapping engine: ~86 Hz (per Meyda callback)
+- Parameter sender: 30 Hz (rate-limited to avoid flooding)
+- UI state updates: 10 Hz (throttled to prevent React jank)
+
+### Generation Configuration
+
+**Denoising Steps**: `[1000, 750, 500, 250]` (4-step schedule)
+- High quality visuals (~15-20 FPS on RTX 6000)
+- Alternative: `[1000, 500, 250]` for 3-step at ~20-25 FPS
+- Alternative: `[1000, 250]` for 2-step at ~25-35 FPS (lower quality)
+
+**Prompt Transitions**: All prompt changes use smooth 3-frame slerp transitions
+- Theme switches: 8-frame transition via theme system
+- Within-theme prompt changes: 3-frame transition
+- Beat action: `pulse_noise` (energy boost, no cache reset)
+
+**Debug Logging** (dev mode): Console logs `[Scope] Sending prompt:` to verify prompt updates
 
 ---
 
@@ -146,9 +178,10 @@ curl -X POST "https://YOUR-POD-8000.proxy.runpod.net/api/v1/pipeline/load" \
 ### Debugging Tips
 
 1. Check browser console for `[Soundscape]` prefixed logs
-2. Verify pipeline status: `curl https://YOUR-POD-8000.proxy.runpod.net/api/v1/pipeline/status`
-3. Check video element: `document.querySelector('video').srcObject.getTracks()[0].muted` should be `false`
-4. ICE state should reach `connected` or `completed`
+2. Check for `[Scope] Sending prompt:` logs to verify prompt changes
+3. Verify pipeline status: `curl https://YOUR-POD-8000.proxy.runpod.net/api/v1/pipeline/status`
+4. Check video element: `document.querySelector('video').srcObject.getTracks()[0].muted` should be `false`
+5. ICE state should reach `connected` or `completed`
 
 ---
 

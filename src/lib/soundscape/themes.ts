@@ -23,16 +23,17 @@ export const COSMIC_VOYAGE: Theme = {
   description: "Journey through neon-lit digital cosmos",
 
   basePrompt:
+    "adventurous flythrough, dynamic camera movement, soaring through " +
     "cosmic digital landscape, neon purple and cyan nebula, " +
     "floating geometric structures, ethereal light particles, " +
-    "deep space atmosphere, stars and galaxies, " +
-    "magenta energy accents, transformation journey",
+    "deep space atmosphere, stars and galaxies rushing past, " +
+    "magenta energy accents, epic journey forward",
   styleModifiers: ["cinematic lighting", "depth of field", "volumetric fog"],
   negativePrompt: "blurry, low quality, text, watermark, human faces",
 
   ranges: {
     denoisingSteps: { min: [700, 400], max: [1000, 750, 500, 250] },
-    noiseScale: { min: 0.3, max: 0.9 },
+    noiseScale: { min: 0.3, max: 0.95 }, // Widened range
     vaceScale: { min: 0.5, max: 1.5 },
     transitionSpeed: { min: 4, max: 16 },
   },
@@ -42,7 +43,7 @@ export const COSMIC_VOYAGE: Theme = {
       {
         parameter: "noiseScale",
         curve: "exponential",
-        sensitivity: 1.2,
+        sensitivity: 1.4, // Increased sensitivity
         invert: false,
       },
       {
@@ -63,8 +64,8 @@ export const COSMIC_VOYAGE: Theme = {
     texture: [],
     beats: {
       enabled: true,
-      action: "pulse_noise",
-      intensity: 0.3,
+      action: "pulse_noise", // Smooth energy boost, preserves continuity
+      intensity: 0.5,
       cooldownMs: 200,
     },
   },
@@ -72,10 +73,12 @@ export const COSMIC_VOYAGE: Theme = {
   promptVariations: {
     trigger: "energy_spike",
     prompts: [
-      "cosmic explosion, supernova burst, intense neon flare",
-      "wormhole opening, reality bending, dimensional rift",
+      "cosmic explosion, supernova burst, intense neon flare, shockwave",
+      "wormhole opening, reality bending, dimensional rift, space tear",
+      "stellar birth, nebula ignition, cosmic genesis, star formation",
+      "galaxy collision, cosmic merge, interstellar fusion, space cataclysm",
     ],
-    blendDuration: 8,
+    blendDuration: 6, // Faster transitions
   },
 };
 
@@ -88,16 +91,17 @@ export const NEON_FOUNDRY: Theme = {
   description: "Inside the Zuberant AI Foundry - where creation happens",
 
   basePrompt:
-    "futuristic workshop interior, glowing machinery, " +
+    "adventurous flythrough, sweeping camera movement, gliding through " +
+    "futuristic workshop interior, glowing machinery passing by, " +
     "holographic displays in cyan, purple ambient lighting, " +
     "gothic architecture meets technology, creative forge, " +
-    "magenta sparks, AI foundry aesthetic",
+    "magenta sparks flying past, AI foundry exploration",
   styleModifiers: ["industrial aesthetic", "dramatic shadows", "neon accents"],
   negativePrompt: "outdoor, nature, daylight, cartoon",
 
   ranges: {
     denoisingSteps: { min: [800, 500], max: [1000, 800, 600, 400] },
-    noiseScale: { min: 0.4, max: 0.85 },
+    noiseScale: { min: 0.4, max: 0.9 }, // Widened range
     vaceScale: { min: 0.8, max: 1.8 },
     transitionSpeed: { min: 6, max: 20 },
   },
@@ -107,7 +111,7 @@ export const NEON_FOUNDRY: Theme = {
       {
         parameter: "noiseScale",
         curve: "linear",
-        sensitivity: 1.0,
+        sensitivity: 1.2, // Increased sensitivity
         invert: false,
       },
     ],
@@ -129,10 +133,21 @@ export const NEON_FOUNDRY: Theme = {
     ],
     beats: {
       enabled: true,
-      action: "cache_reset",
-      intensity: 0.5,
-      cooldownMs: 500,
+      action: "pulse_noise", // Smooth energy boost, preserves continuity
+      intensity: 0.6,
+      cooldownMs: 200,
     },
+  },
+
+  promptVariations: {
+    trigger: "energy_spike",
+    prompts: [
+      "forge ignition, molten metal flow, sparks eruption, creation surge",
+      "hologram glitch, digital overload, system surge, data explosion",
+      "machine awakening, gears spinning, power surge, foundry alive",
+      "neon overload, lights flashing, industrial pulse, electric storm",
+    ],
+    blendDuration: 6,
   },
 };
 
@@ -145,10 +160,11 @@ export const DIGITAL_FOREST: Theme = {
   description: "Bioluminescent nature infused with technology",
 
   basePrompt:
-    "enchanted forest at night, bioluminescent plants, " +
-    "floating particles, cyan and magenta glow, " +
+    "adventurous flythrough, flowing camera movement, weaving through " +
+    "enchanted forest at night, bioluminescent plants rushing past, " +
+    "floating particles streaming by, cyan and magenta glow, " +
     "mystical atmosphere, tech-organic fusion, " +
-    "purple shadows, digital nature harmony",
+    "purple shadows, dynamic forest exploration",
   styleModifiers: ["magical realism", "soft glow", "ethereal"],
   negativePrompt: "urban, concrete, harsh lighting, realistic",
 
@@ -211,9 +227,10 @@ export const SYNTHWAVE_HIGHWAY: Theme = {
   description: "80s retro-futuristic endless drive",
 
   basePrompt:
-    "synthwave landscape, neon grid highway, " +
-    "sunset gradient sky in purple and magenta, palm trees silhouette, " +
-    "retro sports car, vaporwave aesthetic, cyan accent lights",
+    "high speed flythrough, racing forward, speeding down " +
+    "synthwave landscape, neon grid highway stretching ahead, " +
+    "sunset gradient sky in purple and magenta, palm trees rushing past, " +
+    "retro sports car POV, vaporwave aesthetic, cyan accent lights, motion blur",
   styleModifiers: ["80s aesthetic", "chromatic aberration", "scan lines"],
   negativePrompt: "modern, realistic, daytime, cloudy",
 
@@ -229,7 +246,7 @@ export const SYNTHWAVE_HIGHWAY: Theme = {
       {
         parameter: "noiseScale",
         curve: "exponential",
-        sensitivity: 1.4,
+        sensitivity: 1.5, // Increased for more responsiveness
         invert: false,
       },
       {
@@ -250,10 +267,21 @@ export const SYNTHWAVE_HIGHWAY: Theme = {
     ],
     beats: {
       enabled: true,
-      action: "pulse_noise",
-      intensity: 0.5,
-      cooldownMs: 150,
+      action: "pulse_noise", // Smooth energy boost, preserves continuity
+      intensity: 0.6,
+      cooldownMs: 200,
     },
+  },
+
+  promptVariations: {
+    trigger: "energy_spike",
+    prompts: [
+      "neon burst, grid explosion, synthwave lightning, retro energy surge",
+      "speed lines, motion blur, accelerating, highway rush",
+      "sun flare, horizon glow, sunset explosion, sky ignition",
+      "chrome reflection, mirror flash, metallic surge, 80s power",
+    ],
+    blendDuration: 5,
   },
 };
 
@@ -266,10 +294,11 @@ export const CRYSTAL_SANCTUARY: Theme = {
   description: "Inside the gothic castle where transformation happens",
 
   basePrompt:
+    "adventurous flythrough, graceful camera movement, floating through " +
     "gothic castle interior, stained glass windows in purple and cyan, " +
-    "crystal chandeliers, candlelight and magical orbs, " +
-    "stone arches, mystical atmosphere, magenta light beams, " +
-    "sanctuary of creation, ethereal mist",
+    "crystal chandeliers passing overhead, candlelight and magical orbs, " +
+    "stone arches sweeping past, mystical atmosphere, magenta light beams, " +
+    "sanctuary exploration, ethereal mist swirling",
   styleModifiers: [
     "dramatic lighting",
     "gothic architecture",

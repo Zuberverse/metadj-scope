@@ -17,23 +17,51 @@ import type {
 // Mapping Engine Class
 // ============================================================================
 
+// Intensity descriptors that get appended based on energy levels
+const INTENSITY_DESCRIPTORS = {
+  low: ["calm atmosphere", "serene ambiance", "gentle flow", "peaceful drift"],
+  medium: ["dynamic energy", "flowing motion", "vibrant pulse", "building momentum"],
+  high: ["intense power", "explosive energy", "surging force", "electrifying burst"],
+  peak: ["maximum intensity", "overwhelming power", "reality-bending force", "transcendent explosion"],
+} as const;
+
+// Beat intensity modifiers
+const BEAT_MODIFIERS = [
+  "rhythmic pulse",
+  "beat-synchronized flash",
+  "percussive impact",
+  "temporal surge",
+] as const;
+
+// Default transition frames for smooth prompt blending
+const DEFAULT_PROMPT_TRANSITION_STEPS = 3;
+
 export class MappingEngine {
   private theme: Theme;
   private normalization: NormalizationConfig;
   private lastParams: ScopeParameters | null = null;
-  private smoothingFactor = 0.15;
+  private smoothingFactor = 0.3; // Increased for snappier response
 
   // Beat handling
   private lastBeatTriggerTime = 0;
   private promptVariationIndex = 0;
   private currentPromptVariation: string | null = null;
 
+  // Intensity tracking
+  private lastIntensityLevel: "low" | "medium" | "high" | "peak" = "low";
+  private intensityDescriptorIndex = 0;
+  private framesSinceDescriptorChange = 0;
+  private beatModifierIndex = 0;
+
+  // Prompt transition tracking
+  private lastPromptText: string | null = null;
+
   constructor(
     theme: Theme,
     normalization: NormalizationConfig = {
-      energyMax: 0.5,
-      spectralCentroidMin: 200,
-      spectralCentroidMax: 8000,
+      energyMax: 0.15, // Lowered - typical RMS peaks at 0.1-0.2
+      spectralCentroidMin: 100, // Lowered - catch bass-heavy content
+      spectralCentroidMax: 6000, // Lowered for more sensitivity
       spectralFlatnessMax: 0.5,
     }
   ) {
@@ -48,6 +76,7 @@ export class MappingEngine {
     this.theme = theme;
     this.promptVariationIndex = 0;
     this.currentPromptVariation = null;
+    // Don't reset lastPromptText - allows smooth transition to new theme
   }
 
   /**
@@ -70,8 +99,8 @@ export class MappingEngine {
       this.theme.ranges.noiseScale
     );
 
-    // Fixed denoising steps - always use 4-step schedule for consistent quality
-    // Matches native Scope UI defaults: [1000, 750, 500, 250]
+    // Fixed denoising steps - 4-step schedule for high quality
+    // Optimized for RTX 6000: ~15-20 fps
     const denoisingSteps = [1000, 750, 500, 250];
 
     // Handle beat effects
@@ -80,8 +109,23 @@ export class MappingEngine {
       noiseScale = Math.min(1.0, noiseScale + beatEffect.noiseBoost);
     }
 
-    // Build prompts
-    const prompts = this.buildPrompts(derived, beatEffect.promptOverride);
+    // Build prompts with intensity descriptors and beat awareness
+    const prompts = this.buildPrompts(derived, beatEffect.promptOverride, beat.isBeat);
+
+    // Determine if we need a smooth transition for prompt changes
+    // Use beat effect transition if present, otherwise create one for prompt changes
+    let transition = beatEffect.transition;
+    const currentPromptText = prompts.map((p) => p.text).join("|");
+
+    if (!transition && this.lastPromptText && currentPromptText !== this.lastPromptText) {
+      // Prompt changed without a beat effect - add smooth transition
+      transition = {
+        target_prompts: prompts,
+        num_steps: DEFAULT_PROMPT_TRANSITION_STEPS,
+        temporal_interpolation_method: "slerp" as const,
+      };
+    }
+    this.lastPromptText = currentPromptText;
 
     // Build final parameters
     // Note: vaceScale omitted - Soundscape uses text-only mode (no VACE)
@@ -90,7 +134,7 @@ export class MappingEngine {
       denoisingSteps,
       noiseScale,
       resetCache: beatEffect.resetCache,
-      transition: beatEffect.transition,
+      transition,
     };
 
     // Apply smoothing
@@ -218,18 +262,26 @@ export class MappingEngine {
     };
 
     const beatMapping = this.theme.mappings.beats;
+
+    // Always apply a base noise boost on beats (regardless of configured action)
+    // This makes beats universally more impactful
+    if (beat.isBeat) {
+      result.noiseBoost = 0.15; // Base beat response
+    }
+
     if (!beatMapping.enabled || !beat.isBeat) {
-      return result;
+      // Still check for energy spikes even without beat
+      return this.handleEnergySpikeEffects(derived, result);
     }
 
     // Check cooldown
     const now = Date.now();
     const cooldown = beatMapping.cooldownMs || 200;
     const effectiveCooldown =
-      beatMapping.action === "cache_reset" ? Math.max(cooldown, 500) : cooldown;
+      beatMapping.action === "cache_reset" ? Math.max(cooldown, 400) : cooldown;
 
     if (now - this.lastBeatTriggerTime < effectiveCooldown) {
-      return result;
+      return this.handleEnergySpikeEffects(derived, result);
     }
 
     this.lastBeatTriggerTime = now;
@@ -237,11 +289,14 @@ export class MappingEngine {
     // Apply beat action
     switch (beatMapping.action) {
       case "pulse_noise":
-        result.noiseBoost = beatMapping.intensity * 0.3;
+        // Increased from 0.3 to 0.5 multiplier for more visible effect
+        result.noiseBoost = Math.max(result.noiseBoost, beatMapping.intensity * 0.5);
         break;
 
       case "cache_reset":
         result.resetCache = true;
+        // Also boost noise on cache reset for extra punch
+        result.noiseBoost = Math.max(result.noiseBoost, 0.3);
         break;
 
       case "prompt_cycle":
@@ -262,6 +317,7 @@ export class MappingEngine {
             temporal_interpolation_method: "slerp",
           };
         }
+        result.noiseBoost = Math.max(result.noiseBoost, 0.2);
         break;
 
       case "transition_trigger":
@@ -281,25 +337,51 @@ export class MappingEngine {
             temporal_interpolation_method: "slerp",
           };
         }
+        result.noiseBoost = Math.max(result.noiseBoost, 0.2);
         break;
     }
 
-    // Also check for energy spike triggers
+    return this.handleEnergySpikeEffects(derived, result);
+  }
+
+  /**
+   * Handle energy spike effects (separate from beat detection)
+   * Lowered threshold from 0.3 to 0.12 for more frequent triggers
+   */
+  private handleEnergySpikeEffects(
+    derived: AnalysisState["derived"],
+    result: {
+      noiseBoost: number;
+      resetCache: boolean;
+      promptOverride: string | null;
+      transition: ScopeParameters["transition"];
+    }
+  ): typeof result {
+    // Energy spike detection - lowered threshold for more responsiveness
+    const energySpikeThreshold = 0.12;
+
     if (
       this.theme.promptVariations?.trigger === "energy_spike" &&
-      derived.energyDerivative > 0.3
+      derived.energyDerivative > energySpikeThreshold
     ) {
       const variations = this.theme.promptVariations.prompts;
       const spikeVariation =
         variations[Math.floor(Math.random() * variations.length)];
+
+      // Scale transition weight by how big the spike is
+      const spikeIntensity = Math.min(1, derived.energyDerivative / 0.3);
+
       result.transition = {
         target_prompts: [
-          { text: spikeVariation, weight: 0.6 },
-          { text: this.buildBasePrompt(), weight: 0.4 },
+          { text: spikeVariation, weight: 0.4 + spikeIntensity * 0.3 },
+          { text: this.buildBasePrompt(), weight: 0.6 - spikeIntensity * 0.3 },
         ],
         num_steps: this.theme.promptVariations.blendDuration,
         temporal_interpolation_method: "slerp",
       };
+
+      // Also boost noise on energy spikes
+      result.noiseBoost = Math.max(result.noiseBoost, spikeIntensity * 0.25);
     }
 
     return result;
@@ -313,22 +395,65 @@ export class MappingEngine {
     return [this.theme.basePrompt, ...this.theme.styleModifiers].join(", ");
   }
 
+  /**
+   * Get intensity level from energy value
+   */
+  private getIntensityLevel(energy: number): "low" | "medium" | "high" | "peak" {
+    if (energy < 0.25) return "low";
+    if (energy < 0.5) return "medium";
+    if (energy < 0.75) return "high";
+    return "peak";
+  }
+
+  /**
+   * Get an intensity descriptor based on current energy level
+   * Cycles through descriptors to add variety
+   */
+  private getIntensityDescriptor(energy: number, isBeat: boolean): string {
+    const level = this.getIntensityLevel(energy);
+    this.framesSinceDescriptorChange++;
+
+    // Change descriptor when intensity level changes or every ~60 frames (~2 sec)
+    if (level !== this.lastIntensityLevel || this.framesSinceDescriptorChange > 60) {
+      this.lastIntensityLevel = level;
+      this.intensityDescriptorIndex =
+        (this.intensityDescriptorIndex + 1) % INTENSITY_DESCRIPTORS[level].length;
+      this.framesSinceDescriptorChange = 0;
+    }
+
+    const baseDescriptor = INTENSITY_DESCRIPTORS[level][this.intensityDescriptorIndex];
+
+    // Add beat modifier on beats for extra punch (deterministic cycling, not random)
+    if (isBeat) {
+      this.beatModifierIndex = (this.beatModifierIndex + 1) % BEAT_MODIFIERS.length;
+      const beatMod = BEAT_MODIFIERS[this.beatModifierIndex];
+      return `${baseDescriptor}, ${beatMod}`;
+    }
+
+    return baseDescriptor;
+  }
+
   private buildPrompts(
     derived: AnalysisState["derived"],
-    promptOverride: string | null
+    promptOverride: string | null,
+    isBeat: boolean = false
   ): PromptEntry[] {
     const basePrompt = this.buildBasePrompt();
+    const intensityDescriptor = this.getIntensityDescriptor(derived.energy, isBeat);
+
+    // Build the reactive prompt with intensity descriptor
+    const reactivePrompt = `${basePrompt}, ${intensityDescriptor}`;
 
     if (promptOverride) {
-      // Blend override with base based on intensity
+      // Blend override with reactive base
       return [
         { text: promptOverride, weight: 0.4 },
-        { text: basePrompt, weight: 0.6 },
+        { text: reactivePrompt, weight: 0.6 },
       ];
     }
 
-    // Could add brightness-based prompt weight modulation here
-    return [{ text: basePrompt, weight: 1.0 }];
+    // Return the reactive prompt with intensity modifier
+    return [{ text: reactivePrompt, weight: 1.0 }];
   }
 
   // ============================================================================
@@ -436,7 +561,14 @@ export class ParameterSender {
   }
 
   private formatParams(params: ScopeParameters): Record<string, unknown> {
+    // Debug: Log prompt changes (first 80 chars)
+    if (process.env.NODE_ENV === "development") {
+      const promptPreview = params.prompts[0]?.text.slice(0, 80) + "...";
+      console.log("[Scope] Sending prompt:", promptPreview);
+    }
+
     const formatted: Record<string, unknown> = {
+      // Always send prompts - this is the target state
       prompts: params.prompts.map((p) => ({ text: p.text, weight: p.weight })),
       denoising_step_list: params.denoisingSteps,
       noise_scale: params.noiseScale,
@@ -447,6 +579,7 @@ export class ParameterSender {
 
     // Note: vace_context_scale omitted - Soundscape uses text mode only (no VACE ref images)
 
+    // Add transition for smooth blending when prompts change
     if (params.transition) {
       formatted.transition = params.transition;
     }

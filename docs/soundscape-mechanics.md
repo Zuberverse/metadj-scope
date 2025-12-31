@@ -1,6 +1,6 @@
 # Soundscape Technical Mechanics
 
-**Last Modified**: 2025-12-29 22:15 EST
+**Last Modified**: 2025-12-30 20:45 EST
 **Status**: Active
 
 ## Purpose
@@ -42,7 +42,7 @@ Explain the core technical mechanics that make Soundscape work - how audio drive
 │                                         │                                    │
 │                                         ▼                                    │
 │                              [Generated Frame] ──► WebRTC Video Track        │
-│                                   ~6-15 FPS                                  │
+│                                   ~15-20 FPS (4-step on RTX 6000)            │
 │                                                                              │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -112,7 +112,7 @@ noise_scale = 1.0  →  Maximum   →  Very unstable
 | `manage_cache: true` | Preserve latent cache between frames | Normal operation (smooth) |
 | `reset_cache: true` | Clear cache this frame only | Beat drop effect (dramatic jump) |
 
-**Neon Foundry theme** uses `cache_reset` on beats - that's why it has dramatic visual jumps on beat drops.
+**All themes now use `pulse_noise`** on beats - this boosts energy while preserving visual continuity (no dramatic jumps).
 
 ---
 
@@ -173,23 +173,24 @@ Latent cache continuity creates **perceptual smoothness**. Each frame flows from
 The `denoising_step_list` controls quality vs speed.
 
 ```typescript
-// Current fixed setting
+// Current fixed setting (optimized for quality)
 denoising_step_list: [1000, 750, 500, 250]
 ```
 
 Each number is a timestep in the diffusion schedule:
 - **1000**: High noise level (start of denoising)
-- **750, 500**: Progressive refinement
+- **750, 500**: Intermediate refinement steps
 - **250**: Final cleanup
 
 More steps = higher quality, slower. Fewer steps = faster, lower quality.
 
-| Steps | Quality | Speed |
-|-------|---------|-------|
-| `[1000, 750, 500, 250]` | High | Slower (~4 denoising passes) |
-| `[700, 400]` | Lower | Faster (~2 denoising passes) |
+| Steps | Quality | Speed (RTX 6000) |
+|-------|---------|------------------|
+| `[1000, 750, 500, 250]` | High | ~15-20 FPS (4 denoising passes) ← **current** |
+| `[1000, 500, 250]` | Good | ~20-25 FPS (3 denoising passes) |
+| `[1000, 250]` | Acceptable | ~25-35 FPS (2 denoising passes) |
 
-**We use fixed 4-step** to match Scope UI defaults and ensure consistent quality.
+**We use fixed 4-step** for high quality visuals.
 
 ---
 
@@ -199,29 +200,42 @@ Each theme defines:
 
 ```typescript
 {
-  // What to generate
-  basePrompt: "cosmic digital landscape, neon purple...",
+  // What to generate (with flythrough motion language)
+  basePrompt: "adventurous flythrough, dynamic camera movement, soaring through cosmic digital landscape...",
   styleModifiers: ["cinematic lighting", "volumetric fog"],
 
   // Parameter ranges
   ranges: {
-    noiseScale: { min: 0.3, max: 0.9 },  // Low energy → 0.3, high → 0.9
+    noiseScale: { min: 0.3, max: 0.95 },  // Low energy → 0.3, high → 0.95
   },
 
   // How audio maps to parameters
   mappings: {
-    energy: [{ parameter: "noiseScale", curve: "exponential", sensitivity: 1.2 }],
-    beats: { enabled: true, action: "pulse_noise", intensity: 0.3 }
+    energy: [{ parameter: "noiseScale", curve: "exponential", sensitivity: 1.4 }],
+    beats: { enabled: true, action: "pulse_noise", intensity: 0.5, cooldownMs: 200 }
   },
 
   // Prompt variations on energy spikes
   promptVariations: {
     trigger: "energy_spike",
-    prompts: ["cosmic explosion, supernova burst"],
-    blendDuration: 8
+    prompts: ["cosmic explosion, supernova burst", "wormhole opening, reality bending"],
+    blendDuration: 6
   }
 }
 ```
+
+### Intensity Descriptors (Dynamic Prompt Modifiers)
+
+Prompts are dynamically enhanced based on audio energy levels:
+
+| Energy Level | Range | Example Descriptors |
+|--------------|-------|---------------------|
+| Low | 0-25% | "calm atmosphere", "serene ambiance", "gentle flow" |
+| Medium | 25-50% | "dynamic energy", "flowing motion", "vibrant pulse" |
+| High | 50-75% | "intense power", "explosive energy", "surging force" |
+| Peak | 75-100% | "maximum intensity", "overwhelming power", "transcendent explosion" |
+
+On beats, additional modifiers are added: "rhythmic pulse", "beat-synchronized flash", "percussive impact"
 
 ### Mapping Curves
 

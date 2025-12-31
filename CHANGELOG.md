@@ -1,6 +1,6 @@
 # Changelog
 
-**Last Modified**: 2025-12-30 17:13 EST
+**Last Modified**: 2025-12-30 21:15 EST
 
 All notable changes to this project will be documented in this file.
 
@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Avatar Studio webcam ingest (video-to-video mode with `input_mode: "video"`)
 - Avatar Studio auto-reconnect (3 attempts with backoff)
 - Dynamic imports for Soundscape + Avatar Studio to reduce initial load
+- Shared pipeline readiness helper for Scope health/load/wait setup
 - Minimal Vitest coverage for focus toggle and Avatar Studio apply-updates UI
 - jsdom dev dependency for DOM-based Vitest runs
 - VACE asset path input in Avatar Studio (server asset path support)
@@ -41,6 +42,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Demo track: "Metaversal Odyssey" bundled in `/public/audio/`
 - Soundscape page route at `/soundscape`
 - Soundscape mapping engine unit tests (denoising steps, noise scale, beat cache reset)
+- **Intensity descriptors** - Dynamic prompt modifiers based on audio energy levels (low/medium/high/peak)
+- **Beat modifiers** - Additional prompt text on beat detection ("rhythmic pulse", "beat-synchronized flash", "percussive impact")
+- **Smooth prompt transitions** - All prompt changes (not just theme switches) now use 3-frame slerp transitions via Scope's transition API
 - ESLint flat config for Next.js linting
 - Cursor IDE rules (`.cursor/rules/cursor-rules.mdc`)
 - Request timeouts to Scope API client (10s health, 30s default, 60s pipeline load)
@@ -50,11 +54,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Avatar Studio promoted to active MVP alongside Soundscape
+- WebRTC session setup now uses a shared helper to reduce duplication across Soundscape and Avatar Studio
 - Avatar Studio pipeline load now toggles `vace_enabled` and always sends `paused: false`
 - Avatar Studio start button now requires webcam to be active
 - Soundscape UI parameter updates throttled to avoid unnecessary re-renders
 - ParameterSender clears pending timers when data channel closes
-- Denoising steps now use fixed 4-step schedule `[1000, 750, 500, 250]` matching Scope UI defaults (no energy-based variation)
+- **Denoising steps set to 4-step schedule `[1000, 750, 500, 250]`** for high quality visuals (~15-20 FPS on RTX 6000)
+- **Audio normalization tuned for better sensitivity**: `energyMax: 0.15` (was 0.5), `spectralCentroidMin: 100` (was 200), `spectralCentroidMax: 6000` (was 8000)
+- **All 5 theme prompts now include flythrough motion language** ("adventurous flythrough", "dynamic camera movement", etc.) for consistent forward-moving visuals
 - Removed vaceScale from mapping engine and parameter smoothing (Soundscape is text-only, no VACE)
 - Removed unused `computeDenoisingSteps()` method from MappingEngine (dead code cleanup)
 - Default dev server port changed from 2000 to 3500 in package.json scripts
@@ -75,6 +82,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `check:scope` script for API connectivity checks
 - PromptEditor handler wrapped in `useCallback` for performance optimization
 - Consolidated duplicate questions section in `docs/research.md`
+- **All themes now use `pulse_noise` beat action** instead of `cache_reset` for smoother visual continuity (no periodic resets)
+- **Beat modifiers now deterministic** (cycling through array) instead of random selection to reduce prompt thrashing
+- **Prompt sending logic simplified** - always send prompts directly, add transition object only when blending between prompts
+- **Debug logging for prompts** in dev mode - console logs `[Scope] Sending prompt:` to verify prompt updates are being sent
 
 ### Validated
 - All 5 pipeline models downloaded on RunPod instance (longlive, krea-realtime-video, streamdiffusionv2, reward-forcing, passthrough)
