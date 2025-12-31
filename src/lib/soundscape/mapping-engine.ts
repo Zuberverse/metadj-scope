@@ -52,6 +52,7 @@ export class MappingEngine {
   private intensityDescriptorIndex = 0;
   private framesSinceDescriptorChange = 0;
   private beatModifierIndex = 0;
+  private energySpikeVariationIndex = 0;
 
   // Prompt transition tracking
   private lastPromptText: string | null = null;
@@ -323,11 +324,13 @@ export class MappingEngine {
       case "transition_trigger":
         if (this.theme.promptVariations) {
           const variations = this.theme.promptVariations.prompts;
-          const randomVariation =
-            variations[Math.floor(Math.random() * variations.length)];
+          // Deterministic cycling instead of random
+          this.promptVariationIndex =
+            (this.promptVariationIndex + 1) % variations.length;
+          const nextVariation = variations[this.promptVariationIndex];
           result.transition = {
             target_prompts: [
-              { text: randomVariation, weight: beatMapping.intensity },
+              { text: nextVariation, weight: beatMapping.intensity },
               {
                 text: this.buildBasePrompt(),
                 weight: 1 - beatMapping.intensity,
@@ -365,8 +368,10 @@ export class MappingEngine {
       derived.energyDerivative > energySpikeThreshold
     ) {
       const variations = this.theme.promptVariations.prompts;
-      const spikeVariation =
-        variations[Math.floor(Math.random() * variations.length)];
+      // Deterministic cycling instead of random to avoid abrupt visual jumps
+      this.energySpikeVariationIndex =
+        (this.energySpikeVariationIndex + 1) % variations.length;
+      const spikeVariation = variations[this.energySpikeVariationIndex];
 
       // Scale transition weight by how big the spike is
       const spikeIntensity = Math.min(1, derived.energyDerivative / 0.3);
