@@ -27,6 +27,25 @@ const DEFAULT_THEME_ID = "cosmic-voyage";
 /** Get the default theme object */
 const getDefaultTheme = (): Theme => THEMES_BY_ID[DEFAULT_THEME_ID];
 
+/**
+ * Ambient mode interval in milliseconds.
+ * Sends full parameters (including prompts) to maintain model coherence.
+ * 1.5 seconds balances responsiveness with network efficiency.
+ */
+const AMBIENT_INTERVAL_MS = 1500;
+
+/**
+ * Number of transition frames for ambient prompt reinforcement.
+ * Short transitions (3-4 frames) keep visuals stable while allowing subtle evolution.
+ */
+const AMBIENT_REINFORCE_TRANSITION_STEPS = 3;
+
+/**
+ * Number of transition frames for theme changes in ambient mode.
+ * Longer transitions (15-20 frames) for smooth, seamless theme crossfades.
+ */
+const AMBIENT_THEME_CHANGE_TRANSITION_STEPS = 18;
+
 // ============================================================================
 // Hook Interface
 // ============================================================================
@@ -176,61 +195,48 @@ export function useSoundscape(options: UseSoundscapeOptions = {}): UseSoundscape
       setCurrentTheme(theme);
       currentThemeRef.current = theme; // Immediately update ref too
 
-      // Clear any pending params to prevent stale theme params from being sent
-      if (parameterSenderRef.current) {
-        parameterSenderRef.current.clearPending();
-      }
-
+      // Update mapping engine to new theme (handles internal transition flags)
       if (mappingEngineRef.current) {
         mappingEngineRef.current.setTheme(theme);
       }
 
-      // If ambient mode is running, restart it with new theme
-      // (ambient captures theme in closure, so need fresh start)
-      if (ambientIntervalRef.current) {
-        log("Restarting ambient for new theme");
-        // Clear old interval
-        clearInterval(ambientIntervalRef.current);
-        ambientIntervalRef.current = null;
+      // ATOMIC THEME TRANSITION: Don't clear pending - immediately send new prompt
+      // This eliminates the gap that caused cosmos flash
+      if (ambientIntervalRef.current && dataChannelRef.current?.readyState === "open") {
+        log("Ambient: switching to new theme with smooth transition");
 
-        // Send new prompt with LONG SMOOTH TRANSITION for ambient (very seamless)
-        if (parameterSenderRef.current && dataChannelRef.current?.readyState === "open") {
-          const newBasePrompt = `${theme.basePrompt}, ${theme.styleModifiers.join(", ")}, calm atmosphere, gentle flow`;
-          const newPrompts = [{ text: newBasePrompt, weight: 1.0 }];
-          const newParams: ScopeParameters = {
-            prompts: newPrompts,
-            denoisingSteps: [1000, 800, 600, 400, 250],
-            noiseScale: 0.5,
-            // AMBIENT: Extra long transition (20 frames) for very seamless theme blending
-            transition: {
-              target_prompts: newPrompts,
-              num_steps: 20, // 20-frame crossfade - slow, dreamy theme transition
-              temporal_interpolation_method: "slerp",
-            },
-          };
-          parameterSenderRef.current.send(newParams);
-          parametersRef.current = newParams;
-          setParameters(newParams);
-          log("Ambient: theme transition initiated with 20-frame crossfade");
+        // Build new theme prompt
+        const newBasePrompt = `${theme.basePrompt}, ${theme.styleModifiers.join(", ")}, calm atmosphere, gentle flow`;
+        const newPrompts = [{ text: newBasePrompt, weight: 1.0 }];
 
-          // Restart keep-alive - ONLY noise_scale updates, NO prompts
-          // Server keeps generating toward the prompt we just sent
-          ambientIntervalRef.current = setInterval(() => {
-            if (!parameterSenderRef.current || !dataChannelRef.current) return;
-            ambientPhaseRef.current += 0.01;
-            const phase = ambientPhaseRef.current;
+        // Send immediately with long transition for seamless crossfade
+        const themeChangeParams: ScopeParameters = {
+          prompts: newPrompts,
+          denoisingSteps: [1000, 800, 600, 400, 250],
+          noiseScale: 0.5,
+          transition: {
+            target_prompts: newPrompts,
+            num_steps: AMBIENT_THEME_CHANGE_TRANSITION_STEPS,
+            temporal_interpolation_method: "slerp",
+          },
+        };
 
-            // Send ONLY essential params - no prompts, no transition
-            // This just keeps the connection alive without resetting anything
-            const keepAlive = {
-              noise_scale: 0.48 + 0.04 * Math.sin(phase),
-              denoising_step_list: [1000, 800, 600, 400, 250],
-              manage_cache: true,
-              paused: false,
-            };
-            dataChannelRef.current.send(JSON.stringify(keepAlive));
-          }, 5000); // 5s interval - very minimal, just connection keep-alive
-        }
+        // Send directly to data channel (bypass rate limiter for immediate theme change)
+        dataChannelRef.current.send(JSON.stringify({
+          prompts: themeChangeParams.prompts,
+          denoising_step_list: themeChangeParams.denoisingSteps,
+          noise_scale: themeChangeParams.noiseScale,
+          transition: themeChangeParams.transition,
+          manage_cache: true,
+          paused: false,
+        }));
+
+        parametersRef.current = themeChangeParams;
+        setParameters(themeChangeParams);
+        log(`Ambient: theme transition initiated (${AMBIENT_THEME_CHANGE_TRANSITION_STEPS}-frame crossfade)`);
+
+        // Note: Don't restart the interval - it will pick up the new theme from ref
+        // on its next tick via currentThemeRef.current
       }
 
       setState((prev) => ({ ...prev, activeTheme: theme }));
@@ -431,50 +437,79 @@ export function useSoundscape(options: UseSoundscapeOptions = {}): UseSoundscape
     }
     parameterSenderRef.current.setDataChannel(dataChannelRef.current);
 
-    log("Starting ambient mode");
+    log("Starting ambient mode with continuous prompt reinforcement");
 
-    // AMBIENT MODE: Send ONE prompt with long transition, then ONLY noise_scale updates
-    // Prompt is set ONCE and never resent - server keeps generating toward it
-    const basePrompt = `${theme.basePrompt}, ${theme.styleModifiers.join(", ")}, calm atmosphere, gentle flow`;
-    const ambientPrompts = [{ text: basePrompt, weight: 1.0 }];
+    /**
+     * CONTINUOUS AMBIENT MODE
+     *
+     * Key insight: The diffusion model needs continuous prompt guidance for temporal coherence.
+     * Sending prompts only once then going silent causes the model to drift or snap back.
+     *
+     * Solution: Send full parameters (including prompts) every 1.5 seconds with short
+     * transition frames. This keeps the model anchored to the current theme while
+     * allowing natural visual evolution.
+     */
 
-    // Send initial ambient params with long transition (smooth start)
-    const ambientParams: ScopeParameters = {
-      prompts: ambientPrompts,
-      denoisingSteps: [1000, 800, 600, 400, 250],
-      noiseScale: 0.5,
-      // AMBIENT: Long transition (15 frames) for smooth visual start
-      transition: {
-        target_prompts: ambientPrompts,
-        num_steps: 15, // 15-frame blend for gentle initial start
-        temporal_interpolation_method: "slerp",
-      },
-    };
-
-    parameterSenderRef.current.send(ambientParams);
-    parametersRef.current = ambientParams;
-    setParameters(ambientParams);
-    log("Ambient: started with theme:", theme.name, "(15-frame transition)");
-
-    // Keep-alive interval - ONLY noise_scale updates, NO prompts
-    // Server keeps generating toward the prompt we already sent
-    // This prevents any prompt resets or visual discontinuities
-    ambientIntervalRef.current = setInterval(() => {
+    // Helper to build and send ambient parameters
+    const sendAmbientParams = (isInitial: boolean) => {
       if (!dataChannelRef.current || dataChannelRef.current.readyState !== "open") return;
 
-      ambientPhaseRef.current += 0.01;
+      // Always get CURRENT theme from ref (handles theme changes mid-ambient)
+      const currentTheme = currentThemeRef.current;
+
+      // Update phase for subtle noise variation
+      ambientPhaseRef.current += 0.02;
       const phase = ambientPhaseRef.current;
 
-      // Send ONLY essential params - no prompts, no transition
-      // Just keeps connection alive with subtle noise variation
-      const keepAlive = {
-        noise_scale: 0.48 + 0.04 * Math.sin(phase),
+      // Build prompt from current theme
+      const basePrompt = `${currentTheme.basePrompt}, ${currentTheme.styleModifiers.join(", ")}, calm atmosphere, gentle flow`;
+      const prompts = [{ text: basePrompt, weight: 1.0 }];
+
+      // Subtle noise oscillation for organic feel
+      const noiseScale = 0.48 + 0.04 * Math.sin(phase);
+
+      // Transition steps: longer for initial, shorter for reinforcement
+      const transitionSteps = isInitial ? 12 : AMBIENT_REINFORCE_TRANSITION_STEPS;
+
+      // Build transition object with proper typing
+      const transition = {
+        target_prompts: prompts,
+        num_steps: transitionSteps,
+        temporal_interpolation_method: "slerp" as const,
+      };
+
+      const params = {
+        prompts,
         denoising_step_list: [1000, 800, 600, 400, 250],
+        noise_scale: noiseScale,
+        // Short transition for prompt reinforcement - keeps visuals stable
+        transition,
         manage_cache: true,
         paused: false,
       };
-      dataChannelRef.current.send(JSON.stringify(keepAlive));
-    }, 5000); // 5s interval - minimal, just connection keep-alive
+
+      dataChannelRef.current.send(JSON.stringify(params));
+
+      // Update React state for UI
+      const scopeParams: ScopeParameters = {
+        prompts,
+        denoisingSteps: [1000, 800, 600, 400, 250],
+        noiseScale,
+        transition,
+      };
+      parametersRef.current = scopeParams;
+      setParameters(scopeParams);
+    };
+
+    // Send initial params with longer transition for smooth start
+    sendAmbientParams(true);
+    log("Ambient: started with theme:", theme.name, "(continuous reinforcement mode)");
+
+    // Continuous reinforcement interval - sends full params including prompts
+    // This keeps the model anchored and prevents drift/snap-back
+    ambientIntervalRef.current = setInterval(() => {
+      sendAmbientParams(false);
+    }, AMBIENT_INTERVAL_MS);
 
     setState((prev) => ({ ...prev, playback: "playing" }));
   }, [updateRate, log]); // Removed currentTheme - we use currentThemeRef instead

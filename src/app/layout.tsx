@@ -20,8 +20,15 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MetaDJ Scope - AI Avatar Generator",
-  description: "Real-time AI-generated MetaDJ avatar from webcam input using Daydream Scope",
+  title: "MetaDJ Scope - Real-Time AI Video Generation",
+  description: "Transform audio into flowing AI visuals and generate avatar transformations in real-time. Built for the Daydream Scope hackathon.",
+  keywords: ["AI", "video generation", "StreamDiffusion", "audio reactive", "Daydream Scope", "MetaDJ"],
+  authors: [{ name: "MetaDJ", url: "https://metadj.ai" }],
+  openGraph: {
+    title: "MetaDJ Scope - Real-Time AI Video Generation",
+    description: "Transform audio into flowing AI visuals in real-time.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
