@@ -168,11 +168,15 @@ export interface ScopeParameters {
   denoisingSteps: number[];
   /** Noise injection scale (0-1) */
   noiseScale: number;
-  /** VACE context scale (0-2) */
+  /** VACE context scale (0-2) - NOT USED in Soundscape (text-only mode) */
   vaceScale?: number;
-  /** Prompt transition (if changing) */
+  /** Prompt transition (if changing) - used for smooth visual blending */
   transition?: PromptTransition;
-  /** Force cache reset (one-shot) */
+  /**
+   * Force cache reset (one-shot)
+   * @deprecated NEVER USE - causes hard visual cuts. Use smooth transitions instead.
+   * Kept in type for backwards compatibility but MappingEngine never sets this.
+   */
   resetCache?: boolean;
 }
 

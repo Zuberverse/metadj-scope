@@ -17,36 +17,28 @@ import type {
 // Mapping Engine Class
 // ============================================================================
 
-// Intensity descriptors that get appended based on energy levels
-// Reduced set to minimize prompt changes (each change triggers server recache)
-const INTENSITY_DESCRIPTORS = {
-  low: ["calm atmosphere", "gentle flow"],
-  medium: ["dynamic energy", "flowing motion"],
-  high: ["intense power", "surging force"],
-  peak: ["maximum intensity", "transcendent energy"],
+// Static intensity descriptors - ONE per energy level (no cycling, no looping)
+// Prompts only change when energy level actually changes
+const INTENSITY_DESCRIPTORS: Record<string, string> = {
+  low: "calm atmosphere, gentle flow",
+  medium: "dynamic energy, flowing motion",
+  high: "intense power, surging force",
+  peak: "maximum intensity, transcendent energy",
 } as const;
 
-// Temporal/positional variations to break attractor loops
-// These cycle slowly (every ~5 seconds) to add variety without triggering constant recaches
-const TEMPORAL_VARIATIONS = [
-  "approaching distant formations",
-  "passing through energy clouds",
-  "structures emerging ahead",
-  "particles streaming past",
-  "light patterns shifting",
-  "depth layers revealing",
-] as const;
+// NOTE: Temporal variations REMOVED - user requested no prompt looping
+// NOTE: Beat modifiers REMOVED - beats only affect noise, not prompts
+// Prompts are now completely static until theme change or energy level change
 
-// Beat intensity modifiers
-const BEAT_MODIFIERS = [
-  "rhythmic pulse",
-  "beat-synchronized flash",
-  "percussive impact",
-  "temporal surge",
-] as const;
+// Default transition frames for smooth prompt blending (music mode)
+// Slightly longer for seamless feel without being sluggish
+const DEFAULT_PROMPT_TRANSITION_STEPS = 5;
 
-// Default transition frames for smooth prompt blending
-const DEFAULT_PROMPT_TRANSITION_STEPS = 3;
+// Theme change transition (music mode) - smooth crossfade
+const THEME_CHANGE_TRANSITION_STEPS = 12;
+
+// Cooldowns (in milliseconds)
+const ENERGY_SPIKE_COOLDOWN_MS = 3000; // Prevent transition stacking
 
 export class MappingEngine {
   private theme: Theme;
@@ -59,24 +51,19 @@ export class MappingEngine {
   private promptVariationIndex = 0;
   private currentPromptVariation: string | null = null;
 
-  // Intensity tracking
+  // Intensity tracking - only changes when energy level actually changes
   private lastIntensityLevel: "low" | "medium" | "high" | "peak" = "low";
-  private intensityDescriptorIndex = 0;
-  private beatModifierIndex = 0;
   private energySpikeVariationIndex = 0;
+  // NOTE: Temporal variations REMOVED - prompts are static per energy level
 
-  // Temporal variation tracking (cycles VERY slowly to avoid visual resets)
-  // Previous: 150 frames = 5s at 30Hz or 15s at 10Hz (ambient) - caused looping
-  // New: 600 frames = 20s at 30Hz or 60s at 10Hz (ambient) - much longer cycles
-  private temporalVariationIndex = 0;
-  private framesSinceTemporalChange = 0;
-  private readonly temporalChangeCycle = 600; // ~20 seconds at 30Hz, ~60s in ambient
+  // Energy spike cooldown - prevents transition stacking
+  private lastEnergySpikeTime = 0;
 
   // Prompt transition tracking
   private lastPromptText: string | null = null;
 
-  // Theme change flag - triggers cache reset on next parameter computation
-  private pendingCacheReset = false;
+  // Theme change flag - triggers smooth transition (NOT cache reset) on next parameter computation
+  private pendingThemeTransition = false;
 
   // Debug logging - track last logged theme to avoid spam
   private lastLoggedTheme: string | null = null;
@@ -96,6 +83,7 @@ export class MappingEngine {
 
   /**
    * Update the active theme
+   * Uses smooth transition instead of cache reset to avoid hard cuts
    */
   setTheme(theme: Theme): void {
     const wasThemeChange = this.theme.id !== theme.id;
@@ -104,17 +92,15 @@ export class MappingEngine {
     this.promptVariationIndex = 0;
     this.currentPromptVariation = null;
 
-    // Reset cache when theme changes to break out of previous visual "memory"
+    // Smooth transition when theme changes (NO cache reset = no hard cuts)
     if (wasThemeChange) {
-      this.pendingCacheReset = true;
-      // Also reset intensity and temporal tracking to start fresh
+      this.pendingThemeTransition = true;
+      // Reset intensity tracking to start fresh
       this.lastIntensityLevel = "low";
-      this.temporalVariationIndex = 0;
-      this.framesSinceTemporalChange = 0;
       this.lastPromptText = null; // Force fresh prompt
       this.lastLoggedTheme = null; // Force next log
 
-      console.log("[MappingEngine] 🔄 Theme changed:", oldTheme, "→", theme.id);
+      console.log("[MappingEngine] 🔄 Theme changed (smooth transition):", oldTheme, "→", theme.id);
     }
   }
 
@@ -128,6 +114,7 @@ export class MappingEngine {
   /**
    * Reset internal state for clean mode transitions (e.g., audio → ambient)
    * Preserves theme but resets all temporal/intensity tracking
+   * Uses smooth transition instead of cache reset to avoid hard cuts
    */
   resetState(): void {
     this.lastParams = null;
@@ -135,14 +122,11 @@ export class MappingEngine {
     this.promptVariationIndex = 0;
     this.currentPromptVariation = null;
     this.lastIntensityLevel = "low";
-    this.intensityDescriptorIndex = 0;
-    this.beatModifierIndex = 0;
     this.energySpikeVariationIndex = 0;
-    this.temporalVariationIndex = 0;
-    this.framesSinceTemporalChange = 0;
+    this.lastEnergySpikeTime = 0;
     this.lastPromptText = null;
-    this.pendingCacheReset = true; // Trigger fresh start
-    console.log("[MappingEngine] State reset for mode transition");
+    this.pendingThemeTransition = true; // Smooth transition, not cache reset
+    console.log("[MappingEngine] State reset for mode transition (smooth)");
   }
 
   /**
@@ -174,9 +158,10 @@ export class MappingEngine {
       this.theme.ranges.noiseScale
     );
 
-    // Fixed denoising steps - 4-step schedule for high quality
-    // Optimized for RTX 6000: ~15-20 fps
-    const denoisingSteps = [1000, 750, 500, 250];
+    // Fixed denoising steps - 5-step schedule for higher quality
+    // Optimized for RTX 6000: ~12-15 fps (was 4-step at ~15-20 fps)
+    // More steps = sharper, more coherent visuals but slower frame rate
+    const denoisingSteps = [1000, 800, 600, 400, 250];
 
     // Handle beat effects
     const beatEffect = this.handleBeatEffects(beat, derived);
@@ -184,15 +169,24 @@ export class MappingEngine {
       noiseScale = Math.min(1.0, noiseScale + beatEffect.noiseBoost);
     }
 
-    // Build prompts with intensity descriptors and beat awareness
-    const prompts = this.buildPrompts(derived, beatEffect.promptOverride, beat.isBeat);
+    // Build prompts with intensity descriptors (NO beat modifiers - beats only affect noise)
+    const prompts = this.buildPrompts(derived, beatEffect.promptOverride);
 
     // Determine if we need a smooth transition for prompt changes
-    // Use beat effect transition if present, otherwise create one for prompt changes
+    // Priority: theme transition > beat effect transition > regular prompt change transition
     let transition = beatEffect.transition;
     const currentPromptText = prompts.map((p) => p.text).join("|");
 
-    if (!transition && this.lastPromptText && currentPromptText !== this.lastPromptText) {
+    // Theme change gets priority - use longer transition for smooth crossfade
+    if (this.pendingThemeTransition) {
+      this.pendingThemeTransition = false;
+      transition = {
+        target_prompts: prompts,
+        num_steps: THEME_CHANGE_TRANSITION_STEPS,
+        temporal_interpolation_method: "slerp" as const,
+      };
+      console.log("[MappingEngine] Theme transition initiated:", THEME_CHANGE_TRANSITION_STEPS, "steps");
+    } else if (!transition && this.lastPromptText && currentPromptText !== this.lastPromptText) {
       // Prompt changed without a beat effect - add smooth transition
       transition = {
         target_prompts: prompts,
@@ -204,17 +198,12 @@ export class MappingEngine {
 
     // Build final parameters
     // Note: vaceScale omitted - Soundscape uses text-only mode (no VACE)
-    // Check for pending cache reset (e.g., from theme change)
-    const shouldResetCache = beatEffect.resetCache || this.pendingCacheReset;
-    if (this.pendingCacheReset) {
-      this.pendingCacheReset = false; // Consume the flag
-    }
-
+    // Note: resetCache NEVER used - we always use smooth transitions to avoid hard cuts
     const params: ScopeParameters = {
       prompts,
       denoisingSteps,
       noiseScale,
-      resetCache: shouldResetCache,
+      // resetCache deliberately omitted - smooth transitions only
       transition,
     };
 
@@ -326,18 +315,20 @@ export class MappingEngine {
   // Private: Beat Effects
   // ============================================================================
 
+  /**
+   * Handle beat effects - SIMPLIFIED: beats only affect noise, never prompts
+   * This prevents prompt churn and keeps visuals stable while still being responsive
+   */
   private handleBeatEffects(
     beat: AnalysisState["beat"],
     derived: AnalysisState["derived"]
   ): {
     noiseBoost: number;
-    resetCache: boolean;
     promptOverride: string | null;
     transition: ScopeParameters["transition"];
   } {
     const result = {
       noiseBoost: 0,
-      resetCache: false,
       promptOverride: null as string | null,
       transition: undefined as ScopeParameters["transition"],
     };
@@ -347,7 +338,7 @@ export class MappingEngine {
     // Always apply a base noise boost on beats (regardless of configured action)
     // This makes beats universally more impactful
     if (beat.isBeat) {
-      result.noiseBoost = 0.08; // Base beat response (reduced from 0.15 for stability)
+      result.noiseBoost = 0.08; // Base beat response
     }
 
     if (!beatMapping.enabled || !beat.isBeat) {
@@ -358,69 +349,33 @@ export class MappingEngine {
     // Check cooldown
     const now = Date.now();
     const cooldown = beatMapping.cooldownMs || 200;
-    const effectiveCooldown =
-      beatMapping.action === "cache_reset" ? Math.max(cooldown, 400) : cooldown;
 
-    if (now - this.lastBeatTriggerTime < effectiveCooldown) {
+    if (now - this.lastBeatTriggerTime < cooldown) {
       return this.handleEnergySpikeEffects(derived, result);
     }
 
     this.lastBeatTriggerTime = now;
 
-    // Apply beat action
+    // SIMPLIFIED: All beat actions now just boost noise (no prompt changes)
+    // This prevents prompt churn while keeping beat responsiveness
+    // The configured intensity controls how much extra noise boost
     switch (beatMapping.action) {
       case "pulse_noise":
-        // Reduced multiplier for stability (was 0.5, now 0.25)
+        // Standard noise pulse
         result.noiseBoost = Math.max(result.noiseBoost, beatMapping.intensity * 0.25);
         break;
 
       case "cache_reset":
-        result.resetCache = true;
-        // Also boost noise on cache reset for extra punch (reduced from 0.3)
-        result.noiseBoost = Math.max(result.noiseBoost, 0.15);
+        // CHANGED: No longer resets cache (causes hard cuts)
+        // Instead, treat as strong noise pulse
+        result.noiseBoost = Math.max(result.noiseBoost, beatMapping.intensity * 0.35);
         break;
 
       case "prompt_cycle":
-        if (this.theme.promptVariations) {
-          const variations = this.theme.promptVariations.prompts;
-          this.promptVariationIndex =
-            (this.promptVariationIndex + 1) % variations.length;
-          this.currentPromptVariation = variations[this.promptVariationIndex];
-          result.transition = {
-            target_prompts: [
-              { text: this.currentPromptVariation, weight: beatMapping.intensity },
-              {
-                text: this.buildBasePrompt(),
-                weight: 1 - beatMapping.intensity,
-              },
-            ],
-            num_steps: this.theme.promptVariations.blendDuration,
-            temporal_interpolation_method: "slerp",
-          };
-        }
-        result.noiseBoost = Math.max(result.noiseBoost, 0.1);
-        break;
-
       case "transition_trigger":
-        if (this.theme.promptVariations) {
-          const variations = this.theme.promptVariations.prompts;
-          // Deterministic cycling instead of random
-          this.promptVariationIndex =
-            (this.promptVariationIndex + 1) % variations.length;
-          const nextVariation = variations[this.promptVariationIndex];
-          result.transition = {
-            target_prompts: [
-              { text: nextVariation, weight: beatMapping.intensity },
-              {
-                text: this.buildBasePrompt(),
-                weight: 1 - beatMapping.intensity,
-              },
-            ],
-            num_steps: this.theme.promptVariations.blendDuration,
-            temporal_interpolation_method: "slerp",
-          };
-        }
-        result.noiseBoost = Math.max(result.noiseBoost, 0.1);
+        // CHANGED: No longer changes prompts on beats (causes churn)
+        // Instead, treat as moderate noise pulse
+        result.noiseBoost = Math.max(result.noiseBoost, beatMapping.intensity * 0.30);
         break;
     }
 
@@ -429,24 +384,32 @@ export class MappingEngine {
 
   /**
    * Handle energy spike effects (separate from beat detection)
-   * TESTING: Lowered threshold and increased variation weight for clear visual shift
+   * Energy spikes trigger prompt transitions for dramatic visual shifts
+   * Cooldown prevents transition stacking
    */
   private handleEnergySpikeEffects(
     derived: AnalysisState["derived"],
     result: {
       noiseBoost: number;
-      resetCache: boolean;
       promptOverride: string | null;
       transition: ScopeParameters["transition"];
     }
   ): typeof result {
-    // Energy spike detection - VERY LOW threshold for testing
-    const energySpikeThreshold = 0.05; // Was 0.12 - lowered for more triggers
+    // Energy spike detection threshold
+    const energySpikeThreshold = 0.08; // Balanced: responsive but not too sensitive
+
+    // Check cooldown to prevent transition stacking
+    const now = Date.now();
+    if (now - this.lastEnergySpikeTime < ENERGY_SPIKE_COOLDOWN_MS) {
+      return result;
+    }
 
     if (
       this.theme.promptVariations?.trigger === "energy_spike" &&
       derived.energyDerivative > energySpikeThreshold
     ) {
+      this.lastEnergySpikeTime = now; // Update cooldown timestamp
+
       const variations = this.theme.promptVariations.prompts;
       // Deterministic cycling instead of random to avoid abrupt visual jumps
       this.energySpikeVariationIndex =
@@ -454,10 +417,10 @@ export class MappingEngine {
       const spikeVariation = variations[this.energySpikeVariationIndex];
 
       // Scale transition weight by how big the spike is
-      const spikeIntensity = Math.min(1, derived.energyDerivative / 0.15); // Faster ramp to full intensity
+      const spikeIntensity = Math.min(1, derived.energyDerivative / 0.20);
 
-      // TESTING: HIGH weight on variation (0.7-0.95) so color shift is OBVIOUS
-      const variationWeight = 0.7 + spikeIntensity * 0.25;
+      // Moderate weight on variation (0.5-0.75) for noticeable but smooth shifts
+      const variationWeight = 0.5 + spikeIntensity * 0.25;
       const baseWeight = 1 - variationWeight;
 
       // DEBUG: Log energy spikes
@@ -465,7 +428,7 @@ export class MappingEngine {
         console.log(
           `[MappingEngine] ⚡ ENERGY SPIKE! derivative=${derived.energyDerivative.toFixed(3)}, ` +
           `intensity=${spikeIntensity.toFixed(2)}, variationWeight=${variationWeight.toFixed(2)}, ` +
-          `prompt="${spikeVariation.slice(0, 40)}..."`
+          `cooldown=${ENERGY_SPIKE_COOLDOWN_MS}ms`
         );
       }
 
@@ -504,59 +467,36 @@ export class MappingEngine {
   }
 
   /**
-   * Get temporal variation that cycles slowly to break attractor loops
+   * Get intensity descriptor based on current energy level
+   * STATIC per level - prompts only change when energy level actually changes
+   * NO temporal variations, NO cycling - completely stable prompts
    */
-  private getTemporalVariation(): string {
-    this.framesSinceTemporalChange++;
+  private getIntensityDescriptor(energy: number): string {
+    const level = this.getIntensityLevel(energy);
 
-    // Cycle temporal variation every ~5 seconds
-    if (this.framesSinceTemporalChange >= this.temporalChangeCycle) {
-      this.temporalVariationIndex =
-        (this.temporalVariationIndex + 1) % TEMPORAL_VARIATIONS.length;
-      this.framesSinceTemporalChange = 0;
+    // Track level changes for logging
+    if (level !== this.lastIntensityLevel) {
+      if (process.env.NODE_ENV === "development") {
+        console.log(`[MappingEngine] Intensity: ${this.lastIntensityLevel} → ${level}`);
+      }
+      this.lastIntensityLevel = level;
     }
 
-    return TEMPORAL_VARIATIONS[this.temporalVariationIndex];
+    // Return static descriptor for this level (no cycling, no looping)
+    return INTENSITY_DESCRIPTORS[level];
   }
 
   /**
-   * Get an intensity descriptor based on current energy level
-   * Only changes when intensity level actually changes (reduces recache triggers)
+   * Build prompts for Scope
+   * Combines base prompt + style modifiers + intensity descriptor
+   * Prompts are STATIC per energy level - no cycling, no temporal variations
    */
-  private getIntensityDescriptor(energy: number, isBeat: boolean): string {
-    const level = this.getIntensityLevel(energy);
-
-    // Only change descriptor when intensity level ACTUALLY changes
-    // Don't cycle within same level - reduces prompt changes that trigger recaching
-    if (level !== this.lastIntensityLevel) {
-      this.lastIntensityLevel = level;
-      // Pick first descriptor for the new level (consistent, predictable)
-      this.intensityDescriptorIndex = 0;
-    }
-
-    const baseDescriptor = INTENSITY_DESCRIPTORS[level][this.intensityDescriptorIndex];
-    const temporalVariation = this.getTemporalVariation();
-
-    // Combine: intensity + temporal (temporal adds variety without frequent changes)
-    const combined = `${baseDescriptor}, ${temporalVariation}`;
-
-    // Add beat modifier on beats for extra punch (deterministic cycling)
-    if (isBeat) {
-      this.beatModifierIndex = (this.beatModifierIndex + 1) % BEAT_MODIFIERS.length;
-      const beatMod = BEAT_MODIFIERS[this.beatModifierIndex];
-      return `${combined}, ${beatMod}`;
-    }
-
-    return combined;
-  }
-
   private buildPrompts(
     derived: AnalysisState["derived"],
-    promptOverride: string | null,
-    isBeat: boolean = false
+    promptOverride: string | null
   ): PromptEntry[] {
     const basePrompt = this.buildBasePrompt();
-    const intensityDescriptor = this.getIntensityDescriptor(derived.energy, isBeat);
+    const intensityDescriptor = this.getIntensityDescriptor(derived.energy);
 
     // Build the reactive prompt with intensity descriptor
     const reactivePrompt = `${basePrompt}, ${intensityDescriptor}`;
@@ -709,7 +649,7 @@ export class ParameterSender {
   private lastLoggedTheme: string | null = null;
 
   private formatParams(params: ScopeParameters): Record<string, unknown> {
-    // Debug: Log theme identification (only when theme changes or ~every 10 seconds)
+    // Debug: Log theme identification (only when theme changes)
     if (process.env.NODE_ENV === "development") {
       const fullPrompt = params.prompts[0]?.text || "";
       // Extract key theme identifier from prompt
@@ -720,11 +660,7 @@ export class ParameterSender {
       else if (fullPrompt.includes("synthwave") || fullPrompt.includes("highway")) themeHint = "SYNTHWAVE";
       else if (fullPrompt.includes("sanctuary") || fullPrompt.includes("gothic castle")) themeHint = "SANCTUARY";
 
-      // ALWAYS log if cosmic is detected (to catch the snap-back bug)
-      if (themeHint === "COSMIC") {
-        console.warn("[Scope] ⚠️ COSMIC DETECTED:", fullPrompt.slice(0, 80));
-        console.trace("[Scope] Cosmic trace:");
-      } else if (themeHint !== this.lastLoggedTheme) {
+      if (themeHint !== this.lastLoggedTheme) {
         // Log theme changes
         console.log("[Scope] Theme:", themeHint);
         this.lastLoggedTheme = themeHint;
@@ -742,14 +678,11 @@ export class ParameterSender {
     };
 
     // Note: vace_context_scale omitted - Soundscape uses text mode only (no VACE ref images)
+    // Note: reset_cache NEVER sent - we use smooth transitions only to avoid hard cuts
 
     // Add transition for smooth blending when prompts change
     if (params.transition) {
       formatted.transition = params.transition;
-    }
-
-    if (params.resetCache) {
-      formatted.reset_cache = true;
     }
 
     return formatted;

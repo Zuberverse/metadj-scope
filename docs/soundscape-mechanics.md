@@ -1,6 +1,6 @@
 # Soundscape Technical Mechanics
 
-**Last Modified**: 2025-12-30 22:15 EST
+**Last Modified**: 2025-12-31 15:10 EST
 **Status**: Active
 
 ## Purpose
@@ -23,7 +23,7 @@ Explain the core technical mechanics that make Soundscape work - how audio drive
 │                    Raw Features      Theme Mappings          WebRTC         │
 │                    - RMS (energy)    - noiseScale            DataChannel    │
 │                    - Spectral        - prompts                   │          │
-│                    - Beats           - resetCache                │          │
+│                    - Beats           - transitions               │          │
 │                                                                  │          │
 └──────────────────────────────────────────────────────────────────┼──────────┘
                                                                    │
@@ -88,10 +88,12 @@ Frame N+1 output: Similar but evolved image
 |-----------|------|--------|
 | `prompts` | `[{text, weight}]` | What the model generates toward |
 | `noise_scale` | `0.0 - 1.0` | How much change per frame |
-| `manage_cache` | `boolean` | Keep latent cache (smooth) or not |
-| `reset_cache` | `boolean` | Clear cache this frame (hard cut) |
+| `manage_cache` | `boolean` | Keep latent cache (smooth) - always true |
+| `transition` | `object` | Smooth prompt blending (used for all changes) |
 | `denoising_step_list` | `number[]` | Quality/speed tradeoff |
 | `paused` | `boolean` | Stop/start generation |
+
+**Note**: `reset_cache` is NOT used in Soundscape - it causes hard visual cuts. We use smooth `transition` objects instead.
 
 ### noise_scale Explained
 
@@ -108,14 +110,24 @@ noise_scale = 0.9+ →  Too high  →  Chaotic, breaks coherence (avoid!)
 - Beat boosts reduced to prevent ceiling hits
 - Smoothing factor lowered for gradual transitions
 
-### manage_cache vs reset_cache
+### Cache Management (No Hard Cuts)
 
-| Setting | Behavior | Use Case |
-|---------|----------|----------|
-| `manage_cache: true` | Preserve latent cache between frames | Normal operation (smooth) |
-| `reset_cache: true` | Clear cache this frame only | Beat drop effect (dramatic jump) |
+| Setting | Behavior | Status |
+|---------|----------|--------|
+| `manage_cache: true` | Preserve latent cache between frames | **Always used** |
+| `reset_cache: true` | Clear cache (hard cut) | **Never used** - causes jarring visual jumps |
 
-**All themes now use `pulse_noise`** on beats - this boosts energy while preserving visual continuity (no dramatic jumps).
+**Soundscape Philosophy**: We NEVER use `reset_cache`. All visual changes use smooth transitions:
+- **Theme changes (music mode)**: 12-frame crossfade via MappingEngine `pendingThemeTransition`
+- **Theme changes (ambient mode)**: 20-frame crossfade via explicit `transition` object in useSoundscape
+- **Ambient start**: 15-frame transition for smooth visual initialization
+- **Energy spikes**: 8-frame blended prompt transitions (unified blendDuration, with 3s cooldown)
+- **Within-theme prompt changes**: 5-frame transition (DEFAULT_PROMPT_TRANSITION_STEPS)
+- **Beats**: Noise boost only (no prompt changes, no cache resets)
+
+**Critical Implementation Note**: Both audio analysis mode AND ambient mode must send a `transition` object when changing prompts. Without it, Scope does an immediate prompt change which causes a visual "jump" back to the new prompt's aesthetic before blending.
+
+This ensures visuals always flow smoothly, even during theme changes and dramatic audio moments.
 
 ---
 
@@ -176,23 +188,24 @@ The `denoising_step_list` controls quality vs speed.
 
 ```typescript
 // Current fixed setting (optimized for quality)
-denoising_step_list: [1000, 750, 500, 250]
+denoising_step_list: [1000, 800, 600, 400, 250]
 ```
 
 Each number is a timestep in the diffusion schedule:
 - **1000**: High noise level (start of denoising)
-- **750, 500**: Intermediate refinement steps
+- **800, 600, 400**: Intermediate refinement steps (more steps = sharper)
 - **250**: Final cleanup
 
 More steps = higher quality, slower. Fewer steps = faster, lower quality.
 
 | Steps | Quality | Speed (RTX 6000) |
 |-------|---------|------------------|
-| `[1000, 750, 500, 250]` | High | ~15-20 FPS (4 denoising passes) ← **current** |
+| `[1000, 800, 600, 400, 250]` | Higher | ~12-15 FPS (5 denoising passes) ← **current** |
+| `[1000, 750, 500, 250]` | High | ~15-20 FPS (4 denoising passes) |
 | `[1000, 500, 250]` | Good | ~20-25 FPS (3 denoising passes) |
 | `[1000, 250]` | Acceptable | ~25-35 FPS (2 denoising passes) |
 
-**We use fixed 4-step** for high quality visuals.
+**We use fixed 5-step** for higher quality visuals with CSS post-processing sharpening.
 
 ---
 
@@ -221,23 +234,28 @@ Each theme defines:
   promptVariations: {
     trigger: "energy_spike",
     prompts: ["cosmic explosion, supernova burst", "wormhole opening, reality bending"],
-    blendDuration: 6
+    blendDuration: 8  // Unified across all themes
   }
 }
 ```
 
-### Intensity Descriptors (Dynamic Prompt Modifiers)
+### Intensity Descriptors (Static Prompt Modifiers)
 
-Prompts are dynamically enhanced based on audio energy levels:
+Prompts include ONE static descriptor per energy level. **No cycling, no looping** - prompts only change when energy level actually changes:
 
-| Energy Level | Range | Example Descriptors |
-|--------------|-------|---------------------|
-| Low | 0-25% | "calm atmosphere", "serene ambiance", "gentle flow" |
-| Medium | 25-50% | "dynamic energy", "flowing motion", "vibrant pulse" |
-| High | 50-75% | "intense power", "explosive energy", "surging force" |
-| Peak | 75-100% | "maximum intensity", "overwhelming power", "transcendent explosion" |
+| Energy Level | Range | Descriptor |
+|--------------|-------|------------|
+| Low | 0-25% | "calm atmosphere, gentle flow" |
+| Medium | 25-50% | "dynamic energy, flowing motion" |
+| High | 50-75% | "intense power, surging force" |
+| Peak | 75-100% | "maximum intensity, transcendent energy" |
 
-On beats, additional modifiers are added: "rhythmic pulse", "beat-synchronized flash", "percussive impact"
+**Design Philosophy**: Prompts are completely stable within each energy level. Changes only occur on:
+- Theme switches (user-initiated)
+- Energy level transitions (audio-driven)
+- Energy spikes (with 3s cooldown)
+
+**Note**: Temporal variations and beat modifiers were REMOVED - prompts are now fully static per energy level. Beats only affect `noise_scale`.
 
 ### Mapping Curves
 
@@ -248,16 +266,18 @@ On beats, additional modifiers are added: "rhythmic pulse", "beat-synchronized f
 | `logarithmic` | More response at low values |
 | `stepped` | Quantized (4 discrete levels) |
 
-### Beat Actions
+### Beat Actions (Simplified)
 
-| Action | Effect |
-|--------|--------|
-| `pulse_noise` | Temporarily boost noise_scale (default for all themes) |
-| `cache_reset` | Clear latent cache (dramatic jump, not used) |
-| `prompt_cycle` | Cycle through prompt variations deterministically |
-| `transition_trigger` | Cycle through prompt variations with blend (deterministic) |
+**All beat actions now result in noise boosts only.** This prevents prompt churn while keeping beat responsiveness.
 
-**Note**: All prompt variation selection is now deterministic (cycling) instead of random to prevent jarring visual jumps.
+| Action in Theme | Actual Behavior | Intensity |
+|-----------------|-----------------|-----------|
+| `pulse_noise` | Boost noise_scale | 0.25 × intensity |
+| `cache_reset` | Boost noise_scale (no cache reset!) | 0.35 × intensity |
+| `prompt_cycle` | Boost noise_scale (no prompt change!) | 0.30 × intensity |
+| `transition_trigger` | Boost noise_scale (no prompt change!) | 0.30 × intensity |
+
+**Why**: Changing prompts on every beat caused excessive visual transitions. Beats are now felt through noise variation while prompt changes are reserved for energy spikes (with cooldown).
 
 ---
 
@@ -284,9 +304,18 @@ transition: {
 
 | Mechanic | What It Does | We Control? |
 |----------|--------------|-------------|
-| Latent cache | Frame-to-frame memory | Yes (`manage_cache`, `reset_cache`) |
-| Noise injection | How much change per frame | Yes (`noise_scale`) |
+| Latent cache | Frame-to-frame memory | Yes (`manage_cache` = always true) |
+| Noise injection | How much change per frame | Yes (`noise_scale`, audio-driven) |
 | Forward motion | Apparent camera movement | No (model behavior) |
-| Transitions | Smooth prompt blending | Yes (`transition` object) |
-| FPS | Video frame rate | Indirectly (resolution) |
-| Quality | Image detail | Yes (`denoising_step_list`) |
+| Transitions | Smooth prompt blending | Yes (`transition` object, always used) |
+| FPS | Video frame rate | Indirectly (resolution, denoising steps) |
+| Quality | Image detail | Yes (`denoising_step_list` + CSS sharpening) |
+| Beat response | Visual reactivity | Yes (noise boost only, no prompt changes) |
+| Energy spikes | Dramatic visual shifts | Yes (prompt transitions with 3s cooldown) |
+| Prompt stability | Static prompts per energy level | Yes (no cycling, no temporal variations) |
+
+**Design Philosophy**:
+- Smooth transitions everywhere - no hard cuts
+- Beats are felt through noise, not prompt changes
+- Prompts are static per energy level - no looping or cycling
+- 5-step denoising + CSS sharpening for crisp visuals

@@ -339,8 +339,10 @@ export function AudioPlayer({
               onClick={() => handleModeChange(m)}
               disabled={disabled}
               className={`
-                px-2 py-1 rounded text-[9px] font-bold uppercase transition-all
-                ${mode === m ? "bg-scope-cyan text-black" : "bg-white/10 text-white/50 hover:bg-white/20"}
+                px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all duration-300 border
+                ${mode === m
+                  ? "glass bg-scope-cyan/20 text-scope-cyan border-scope-cyan/40 shadow-[0_0_10px_rgba(6,182,212,0.2)]"
+                  : "glass bg-white/5 text-white/40 border-white/10 hover:bg-white/10 hover:border-scope-cyan/30"}
               `}
             >
               {m === "demo" ? "🎵" : m === "upload" ? "📁" : "🎤"}
@@ -354,7 +356,12 @@ export function AudioPlayer({
             type="button"
             onClick={isPlaying ? handlePause : handlePlay}
             disabled={disabled}
-            className="w-8 h-8 rounded-full bg-scope-purple hover:bg-scope-purple/80 text-white flex items-center justify-center text-sm transition-all"
+            className={`
+              w-9 h-9 rounded-full flex items-center justify-center text-sm transition-all duration-300 border
+              ${isPlaying
+                ? "glass bg-scope-purple/30 text-white border-scope-purple/50 shadow-[0_0_15px_rgba(139,92,246,0.3)]"
+                : "glass bg-scope-purple/20 text-white border-scope-purple/40 hover:bg-scope-purple/30"}
+            `}
           >
             {isPlaying ? "⏸" : "▶"}
           </button>
@@ -362,9 +369,17 @@ export function AudioPlayer({
 
         {/* Track info */}
         <div className="flex-1 min-w-0">
-          <p className="text-xs text-white truncate">{fileName || "No audio"}</p>
+          <p className="text-[11px] text-white/80 truncate font-medium">{fileName || "No audio"}</p>
           {mode !== "mic" && duration > 0 && (
-            <p className="text-[10px] text-gray-500">{formatTime(currentTime)} / {formatTime(duration)}</p>
+            <p className="text-[10px] text-white/30 font-mono">{formatTime(currentTime)} / {formatTime(duration)}</p>
+          )}
+          {mode === "mic" && micActive && (
+            <div className="mt-1 h-1 glass bg-white/5 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-scope-cyan rounded-full transition-all duration-75"
+                style={{ width: `${micLevel}%` }}
+              />
+            </div>
           )}
         </div>
 

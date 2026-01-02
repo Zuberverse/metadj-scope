@@ -1,6 +1,6 @@
 # Strategy - MetaDJ Scope
 
-**Last Modified**: 2025-12-30 17:31 EST
+**Last Modified**: 2025-12-31 15:15 EST
 **Status**: Active
 
 ## Purpose
@@ -72,9 +72,11 @@ Build **Soundscape** as the primary experience and bring **Avatar Studio** to MV
 - Acceptable VRAM requirements on the current RunPod instance.
 
 ### Decision 3: Aspect Ratio Defaults
-**Decision**: Default to 16:9 (1024x576), with optional 9:16 (480x832).
+**Decision**: Default to 16:9 (576×320), with optional 9:16 (320×576).
 
 **Rationale**:
+- Dimensions must be divisible by 64 for Scope pipeline compatibility.
+- Smaller resolution optimizes for higher FPS (~15-20 FPS on RTX Pro 6000).
 - 16:9 aligns with typical screens and demo capture.
 - 9:16 remains available for social-first export.
 

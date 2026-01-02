@@ -52,32 +52,38 @@ export function AnalysisMeter({ analysis, parameters, compact = false }: Analysi
     return (
       <div className="flex items-center gap-4">
         {/* Mini meters */}
-        <div className="flex items-center gap-3 flex-1">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[9px] text-gray-500">E</span>
-            <div className="w-12 h-1.5 bg-white/10 rounded-full overflow-hidden">
+        <div className="flex items-center gap-4 flex-1">
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] text-scope-purple/70 font-medium uppercase">E</span>
+            <div className="w-16 h-1.5 glass bg-white/5 rounded-full overflow-hidden border border-white/10">
               <div
-                className="h-full bg-purple-500 rounded-full transition-all"
-                style={{ width: `${Math.round((derived?.energy ?? 0) * 100)}%` }}
+                className="h-full bg-scope-purple rounded-full transition-all duration-150"
+                style={{
+                  width: `${Math.round((derived?.energy ?? 0) * 100)}%`,
+                  boxShadow: derived?.energy && derived.energy > 0.3 ? '0 0 8px rgba(139,92,246,0.5)' : 'none'
+                }}
               />
             </div>
           </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[9px] text-gray-500">B</span>
-            <div className="w-12 h-1.5 bg-white/10 rounded-full overflow-hidden">
+          <div className="flex items-center gap-2">
+            <span className="text-[9px] text-scope-cyan/70 font-medium uppercase">B</span>
+            <div className="w-16 h-1.5 glass bg-white/5 rounded-full overflow-hidden border border-white/10">
               <div
-                className="h-full bg-cyan-500 rounded-full transition-all"
-                style={{ width: `${Math.round((derived?.brightness ?? 0) * 100)}%` }}
+                className="h-full bg-scope-cyan rounded-full transition-all duration-150"
+                style={{
+                  width: `${Math.round((derived?.brightness ?? 0) * 100)}%`,
+                  boxShadow: derived?.brightness && derived.brightness > 0.3 ? '0 0 8px rgba(6,182,212,0.5)' : 'none'
+                }}
               />
             </div>
           </div>
         </div>
 
         {/* BPM */}
-        <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${beat?.isBeat ? "bg-pink-500 animate-ping" : "bg-gray-600"}`} />
-          <span className="text-sm font-mono text-white">{beat?.bpm ?? "--"}</span>
-          <span className="text-[9px] text-gray-500">BPM</span>
+        <div className="flex items-center gap-2 glass bg-white/5 px-3 py-1.5 rounded-lg border border-white/10">
+          <div className={`w-2 h-2 rounded-full transition-all duration-150 ${beat?.isBeat ? "bg-scope-magenta shadow-[0_0_8px_rgba(236,72,153,0.6)]" : "bg-white/20"}`} />
+          <span className="text-sm font-mono text-white/80 font-medium">{beat?.bpm ?? "--"}</span>
+          <span className="text-[9px] text-white/40 uppercase">bpm</span>
         </div>
       </div>
     );

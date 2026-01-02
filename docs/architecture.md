@@ -1,6 +1,6 @@
 # Architecture - MetaDJ Scope
 
-**Last Modified**: 2025-12-30 21:30 EST
+**Last Modified**: 2025-12-31 15:00 EST
 **Status**: Active
 
 ## Purpose
@@ -63,15 +63,18 @@ Each experience page shows its own Scope connection status in the header.
 
 ### Generation Configuration
 
-**Denoising Steps**: `[1000, 750, 500, 250]` (4-step schedule)
-- High quality visuals (~15-20 FPS on RTX 6000)
+**Denoising Steps**: `[1000, 800, 600, 400, 250]` (5-step schedule)
+- Higher quality visuals (~12-15 FPS on RTX 6000)
+- Alternative: `[1000, 750, 500, 250]` for 4-step at ~15-20 FPS
 - Alternative: `[1000, 500, 250]` for 3-step at ~20-25 FPS
 - Alternative: `[1000, 250]` for 2-step at ~25-35 FPS (lower quality)
 
-**Prompt Transitions**: All prompt changes use smooth 3-frame slerp transitions
-- Theme switches: 8-frame transition via theme system
-- Within-theme prompt changes: 3-frame transition
-- Beat action: `pulse_noise` (energy boost, no cache reset)
+**Prompt Transitions**: All prompt changes use smooth slerp transitions (no hard cuts)
+- Theme switches: 12-frame crossfade transition
+- Energy spike prompt changes: 8-frame transition (unified blendDuration, with 3s cooldown)
+- Within-theme prompt changes: 5-frame transition (DEFAULT_PROMPT_TRANSITION_STEPS)
+- Beat action: `pulse_noise` (noise boost only, no prompt changes, no cache reset)
+- Temporal variation: REMOVED (prompts are static per energy level—no cycling or looping)
 
 **Debug Logging** (dev mode): Console logs `[Scope] Sending prompt:` to verify prompt updates
 
@@ -184,6 +187,38 @@ curl -X POST "https://YOUR-POD-8000.proxy.runpod.net/api/v1/pipeline/load" \
 3. Verify pipeline status: `curl https://YOUR-POD-8000.proxy.runpod.net/api/v1/pipeline/status`
 4. Check video element: `document.querySelector('video').srcObject.getTracks()[0].muted` should be `false`
 5. ICE state should reach `connected` or `completed`
+
+---
+
+## UI Design System
+
+### Typography
+- **Display font**: Cinzel (via `font-display` utility) for headers and section titles
+- **Body font**: Poppins for UI text and controls
+- **Mono font**: JetBrains Mono for technical displays
+
+### Glassmorphism
+All UI panels use the glass-neon aesthetic system:
+- `glass`: `backdrop-filter: blur(24px) saturate(180%)` + translucent background
+- `glass-radiant`: Enhanced version with purple glow, used for primary containers
+- Subtle borders: `rgba(255, 255, 255, 0.08)` for depth
+
+### Video Display
+- Video has padding (`p-3 pt-12 pb-12`) to prevent overlay controls from covering content
+- Overlay controls (Sharp, aspect ratio, Disconnect) positioned top-right with compact styling
+- `object-contain` preserves aspect ratio within the container
+
+### CSS Post-Processing (Sharp Mode)
+When enabled, applies CSS filters to enhance AI-generated visuals:
+```css
+filter: contrast(1.08) saturate(1.05);
+image-rendering: crisp-edges;
+```
+
+### Theme System
+- 5 preset themes: Cosmic Voyage, Neon Foundry, Digital Forest, Synthwave Highway, Crystal Sanctuary
+- All themes display in compact dock with glass-styled pills
+- Active theme highlighted with purple glow accent
 
 ---
 

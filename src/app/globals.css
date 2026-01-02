@@ -6,6 +6,11 @@
    * Canonical reference: MetaDJ Nexus
    */
 
+  /* Typography - Font Family Definitions for Tailwind 4 */
+  --font-family-display: var(--font-cinzel), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-family-body: var(--font-poppins), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-family-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
   /* Brand Colors (Primary Tier) - High Vibrance OKLCH */
   --color-scope-purple: oklch(0.646 0.222 264.376);
   /* Human wisdom */
@@ -190,4 +195,29 @@ h3,
   border: 2px solid var(--color-scope-cyan);
   border-radius: 50%;
   animation: ripple 2s infinite;
+}
+
+/* Animation delays */
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* Scale-in animation */
+@keyframes scale-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-scale-in {
+  animation: scale-in 0.3s ease-out;
 }

@@ -40,6 +40,7 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
 
   // UI state
   const [showControls, setShowControls] = useState(true);
+  const [sharpenEnabled, setSharpenEnabled] = useState(true); // Post-processing sharpening
 
   // Aspect ratio state (16:9 widescreen by default)
   const [aspectRatio, setAspectRatio] = useState<AspectRatioConfig>(DEFAULT_ASPECT_RATIO);
@@ -196,8 +197,8 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
       });
 
       setConnectionStatus("Creating connection...");
-      // Fixed 3-step schedule for good quality/FPS balance (~20-25 fps on RTX 6000)
-      const DENOISING_STEPS = [1000, 750, 500, 250];
+      // 5-step schedule for higher quality (~12-15 fps on RTX 6000)
+      const DENOISING_STEPS = [1000, 800, 600, 400, 250];
       const initialParams = currentTheme
         ? {
           prompts: [{ text: currentTheme.basePrompt, weight: 1.0 }],
@@ -289,44 +290,64 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
 
   return (
     <div className="h-full flex flex-col">
-      {/* VIDEO HERO - Takes most of the space */}
+      {/* VIDEO HERO - Takes most of the space with padding for controls */}
       <div className="flex-1 min-h-0 relative bg-black">
         {scopeStream ? (
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            muted
-            className="absolute inset-0 w-full h-full object-contain"
-          />
+          /* Video with padding so overlays don't cover content */
+          <div className="absolute inset-0 p-3 pt-12 pb-12">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="w-full h-full object-contain rounded-lg"
+              style={sharpenEnabled ? {
+                // CSS post-processing for crisper visuals
+                filter: "contrast(1.08) saturate(1.05)",
+                imageRendering: "crisp-edges",
+              } : undefined}
+            />
+          </div>
         ) : isConnecting ? (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center">
-              <div className="text-4xl mb-4 animate-pulse">✨</div>
-              <p className="text-scope-cyan text-sm font-medium mb-2">
+            {/* Ambient glow background */}
+            <div className="glow-bg bg-scope-purple/20 top-1/4 left-1/4" />
+            <div className="glow-bg bg-scope-cyan/15 bottom-1/4 right-1/4 animation-delay-2000" />
+            <div className="glass-radiant text-center p-8 rounded-3xl max-w-sm">
+              <div className="text-5xl mb-5 animate-float">✨</div>
+              <h2 className="font-display text-xl text-white mb-2 tracking-wide">
+                Initializing
+              </h2>
+              <p className="text-scope-cyan/80 text-sm font-medium mb-4">
                 {connectionStatus || "Connecting..."}
               </p>
-              <div className="w-32 h-1 bg-white/10 rounded-full mx-auto overflow-hidden">
-                <div className="h-full bg-scope-cyan animate-pulse rounded-full w-2/3" />
+              <div className="w-48 h-1.5 glass bg-white/5 rounded-full mx-auto overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-scope-purple via-scope-cyan to-scope-magenta animate-pulse rounded-full w-2/3" />
               </div>
             </div>
           </div>
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center max-w-md px-4">
-              <div className="text-6xl mb-6 opacity-30">✨</div>
-              <p className="text-gray-400 mb-6">
-                Connect to generate real-time AI visuals from your audio
+            {/* Ambient glow background */}
+            <div className="glow-bg bg-scope-purple/15 top-1/3 left-1/3" />
+            <div className="glow-bg bg-scope-cyan/10 bottom-1/3 right-1/3 animation-delay-2000" />
+            <div className="glass-radiant text-center max-w-md px-8 py-10 rounded-3xl">
+              <div className="text-6xl mb-6 animate-float">✨</div>
+              <h1 className="font-display text-2xl text-white mb-3 tracking-wide chisel-gradient">
+                Soundscape
+              </h1>
+              <p className="text-white/50 mb-8 text-sm leading-relaxed">
+                Generate real-time AI visuals from your audio with Daydream Scope
               </p>
               <button
                 type="button"
                 onClick={handleConnectScope}
-                className="px-8 py-3 bg-scope-cyan/20 hover:bg-scope-cyan/30 text-scope-cyan border border-scope-cyan/30 rounded-lg font-medium transition-all hover:scale-105"
+                className="px-10 py-4 glass bg-scope-cyan/20 hover:bg-scope-cyan/30 text-scope-cyan border border-scope-cyan/40 rounded-2xl font-display text-sm uppercase tracking-[0.15em] transition-all duration-500 hover:scale-105 hover:shadow-[0_0_30px_rgba(6,182,212,0.3)]"
               >
                 Connect to Scope
               </button>
               {scopeError && (
-                <div className="mt-4">
+                <div className="mt-6 glass bg-red-500/10 border border-red-500/30 rounded-xl p-4">
                   <p className="text-red-400 text-sm mb-2">{scopeError}</p>
                   {reconnectAttempts >= MAX_RECONNECT_ATTEMPTS && (
                     <button
@@ -336,9 +357,9 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
                         setScopeError(null);
                         handleConnectScope();
                       }}
-                      className="text-sm text-scope-cyan hover:underline"
+                      className="text-sm text-scope-cyan hover:underline font-medium"
                     >
-                      Retry
+                      Retry Connection
                     </button>
                   )}
                 </div>
@@ -347,9 +368,21 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
           </div>
         )}
 
-        {/* Overlay controls - Top Right */}
+        {/* Overlay controls - Top Right (compact, single line) */}
         {scopeStream && (
-          <div className="absolute top-3 right-3 flex items-center gap-2">
+          <div className="absolute top-3 right-3 flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setSharpenEnabled(!sharpenEnabled)}
+              className={`px-2 py-1 text-[9px] font-medium uppercase tracking-wide rounded border transition-all duration-300 ${
+                sharpenEnabled
+                  ? "glass bg-scope-cyan/20 text-scope-cyan border-scope-cyan/40"
+                  : "glass bg-white/5 text-white/50 border-white/10 hover:border-scope-cyan/30"
+              }`}
+              title="Toggle post-processing sharpening"
+            >
+              {sharpenEnabled ? "Sharp" : "Raw"}
+            </button>
             <AspectRatioToggle
               current={aspectRatio}
               onChange={setAspectRatio}
@@ -358,7 +391,7 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
             <button
               type="button"
               onClick={() => handleDisconnectScope(true)}
-              className="px-3 py-1.5 bg-red-500/20 hover:bg-red-500/40 text-red-300 text-xs rounded border border-red-500/30 transition-colors"
+              className="px-2 py-1 glass bg-red-500/10 hover:bg-red-500/20 text-red-400 text-[9px] font-medium uppercase tracking-wide rounded border border-red-500/30 transition-all duration-300"
             >
               Disconnect
             </button>
@@ -369,19 +402,19 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
         <button
           type="button"
           onClick={() => setShowControls(!showControls)}
-          className="absolute bottom-3 right-3 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white/70 text-xs rounded backdrop-blur-sm transition-colors"
+          className="absolute bottom-3 right-3 px-3 py-1.5 glass bg-white/5 hover:bg-white/10 text-white/60 hover:text-white/80 text-[9px] font-medium uppercase tracking-wide rounded border border-white/10 hover:border-scope-purple/30 transition-all duration-300"
         >
-          {showControls ? "Hide Controls" : "Show Controls"}
+          {showControls ? "Hide" : "Show"} Controls
         </button>
       </div>
 
       {/* COMPACT CONTROLS DOCK - Bottom */}
       {showControls && (
-        <div className="flex-none border-t border-white/10 bg-scope-surface/95 backdrop-blur-sm">
-          <div className="flex items-stretch divide-x divide-white/10">
+        <div className="flex-none glass-radiant border-t border-scope-purple/20">
+          <div className="flex items-stretch divide-x divide-white/5">
             {/* Audio Source */}
-            <div className="flex-1 p-3">
-              <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-2">Audio</div>
+            <div className="flex-1 p-4">
+              <h3 className="font-display text-[11px] uppercase tracking-[0.2em] text-scope-cyan/70 mb-3">Audio</h3>
               <AudioPlayer
                 onAudioElement={handleAudioElement}
                 onPlayStateChange={handlePlayStateChange}
@@ -390,8 +423,8 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
             </div>
 
             {/* Theme Selector */}
-            <div className="flex-1 p-3">
-              <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-2">Theme</div>
+            <div className="flex-[2] p-4">
+              <h3 className="font-display text-[11px] uppercase tracking-[0.2em] text-scope-cyan/70 mb-3">Theme</h3>
               <ThemeSelector
                 themes={presetThemes}
                 currentTheme={currentTheme}
@@ -401,21 +434,21 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
             </div>
 
             {/* Analysis */}
-            <div className="flex-1 p-3">
-              <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-2">Analysis</div>
+            <div className="flex-1 p-4">
+              <h3 className="font-display text-[11px] uppercase tracking-[0.2em] text-scope-cyan/70 mb-3">Analysis</h3>
               <AnalysisMeter analysis={state.analysis} parameters={parameters} compact />
             </div>
 
             {/* Status */}
-            <div className="w-32 p-3 flex flex-col justify-center">
-              <div className="text-[10px] uppercase tracking-wider text-gray-500 mb-1">Status</div>
+            <div className="w-36 p-4 flex flex-col justify-center glass bg-black/20">
+              <h3 className="font-display text-[11px] uppercase tracking-[0.2em] text-scope-cyan/70 mb-2">Status</h3>
               <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${scopeStream ? "bg-green-500" : "bg-gray-600"}`} />
-                <span className="text-xs text-gray-400">{scopeStream ? "Live" : "Offline"}</span>
+                <div className={`w-2 h-2 rounded-full ${scopeStream ? "bg-scope-cyan shadow-[0_0_8px_rgba(6,182,212,0.6)]" : "bg-gray-600"}`} />
+                <span className="text-xs text-white/60">{scopeStream ? "Connected" : "Offline"}</span>
               </div>
-              <div className="flex items-center gap-2 mt-1">
-                <div className={`w-2 h-2 rounded-full ${state.playback === "playing" ? "bg-scope-cyan animate-pulse" : "bg-gray-600"}`} />
-                <span className="text-xs text-gray-400">{state.playback === "playing" ? "Active" : "Idle"}</span>
+              <div className="flex items-center gap-2 mt-1.5">
+                <div className={`w-2 h-2 rounded-full ${state.playback === "playing" ? "bg-scope-purple animate-pulse shadow-[0_0_8px_rgba(139,92,246,0.6)]" : "bg-gray-600"}`} />
+                <span className="text-xs text-white/60">{state.playback === "playing" ? "Generating" : "Idle"}</span>
               </div>
             </div>
           </div>

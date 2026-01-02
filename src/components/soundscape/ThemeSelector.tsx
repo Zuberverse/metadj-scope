@@ -50,28 +50,23 @@ export function ThemeSelector({
   // Compact mode for dock
   if (compact) {
     return (
-      <div className="flex items-center gap-2 overflow-x-auto">
-        {themes.slice(0, 4).map((theme) => (
+      <div className="flex items-center gap-2 flex-wrap">
+        {themes.map((theme) => (
           <button
             key={theme.id}
             type="button"
             onClick={() => handlePresetSelect(theme.id)}
             disabled={disabled}
             className={`
-              px-3 py-1.5 rounded text-[10px] font-medium whitespace-nowrap transition-all
+              px-3 py-1.5 rounded-lg text-[10px] font-medium whitespace-nowrap transition-all duration-300
               ${currentTheme?.id === theme.id
-                ? "bg-scope-purple text-white"
-                : "bg-white/10 text-white/60 hover:bg-white/20"}
+                ? "glass bg-scope-purple/30 text-white border border-scope-purple/50 shadow-[0_0_12px_rgba(139,92,246,0.3)]"
+                : "glass bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:border-scope-purple/30"}
             `}
           >
             {theme.name}
           </button>
         ))}
-        {currentTheme && (
-          <span className="text-[10px] text-gray-500 ml-auto whitespace-nowrap">
-            Active: {currentTheme.name}
-          </span>
-        )}
       </div>
     );
   }

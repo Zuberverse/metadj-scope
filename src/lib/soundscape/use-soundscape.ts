@@ -193,31 +193,43 @@ export function useSoundscape(options: UseSoundscapeOptions = {}): UseSoundscape
         clearInterval(ambientIntervalRef.current);
         ambientIntervalRef.current = null;
 
-        // Send new prompt immediately with fresh theme
+        // Send new prompt with LONG SMOOTH TRANSITION for ambient (very seamless)
         if (parameterSenderRef.current && dataChannelRef.current?.readyState === "open") {
           const newBasePrompt = `${theme.basePrompt}, ${theme.styleModifiers.join(", ")}, calm atmosphere, gentle flow`;
+          const newPrompts = [{ text: newBasePrompt, weight: 1.0 }];
           const newParams: ScopeParameters = {
-            prompts: [{ text: newBasePrompt, weight: 1.0 }],
-            denoisingSteps: [1000, 750, 500, 250],
+            prompts: newPrompts,
+            denoisingSteps: [1000, 800, 600, 400, 250],
             noiseScale: 0.5,
-            resetCache: true,
+            // AMBIENT: Extra long transition (20 frames) for very seamless theme blending
+            transition: {
+              target_prompts: newPrompts,
+              num_steps: 20, // 20-frame crossfade - slow, dreamy theme transition
+              temporal_interpolation_method: "slerp",
+            },
           };
           parameterSenderRef.current.send(newParams);
           parametersRef.current = newParams;
           setParameters(newParams);
+          log("Ambient: theme transition initiated with 20-frame crossfade");
 
-          // Restart keep-alive with new theme
-          const capturedPrompt = newBasePrompt;
+          // Restart keep-alive - ONLY noise_scale updates, NO prompts
+          // Server keeps generating toward the prompt we just sent
           ambientIntervalRef.current = setInterval(() => {
-            if (!parameterSenderRef.current) return;
+            if (!parameterSenderRef.current || !dataChannelRef.current) return;
             ambientPhaseRef.current += 0.01;
             const phase = ambientPhaseRef.current;
-            parameterSenderRef.current.send({
-              prompts: [{ text: capturedPrompt, weight: 1.0 }],
-              denoisingSteps: [1000, 750, 500, 250],
-              noiseScale: 0.48 + 0.04 * Math.sin(phase),
-            });
-          }, 2000);
+
+            // Send ONLY essential params - no prompts, no transition
+            // This just keeps the connection alive without resetting anything
+            const keepAlive = {
+              noise_scale: 0.48 + 0.04 * Math.sin(phase),
+              denoising_step_list: [1000, 800, 600, 400, 250],
+              manage_cache: true,
+              paused: false,
+            };
+            dataChannelRef.current.send(JSON.stringify(keepAlive));
+          }, 5000); // 5s interval - very minimal, just connection keep-alive
         }
       }
 
@@ -421,40 +433,48 @@ export function useSoundscape(options: UseSoundscapeOptions = {}): UseSoundscape
 
     log("Starting ambient mode");
 
-    // AMBIENT MODE: Send ONE static prompt, then just keep connection alive
-    // Prompt only changes when theme is toggled (handled by setTheme)
-    // NOTE: `theme` is already declared above from currentThemeRef.current
+    // AMBIENT MODE: Send ONE prompt with long transition, then ONLY noise_scale updates
+    // Prompt is set ONCE and never resent - server keeps generating toward it
     const basePrompt = `${theme.basePrompt}, ${theme.styleModifiers.join(", ")}, calm atmosphere, gentle flow`;
+    const ambientPrompts = [{ text: basePrompt, weight: 1.0 }];
 
-    // Send initial ambient params once
+    // Send initial ambient params with long transition (smooth start)
     const ambientParams: ScopeParameters = {
-      prompts: [{ text: basePrompt, weight: 1.0 }],
-      denoisingSteps: [1000, 750, 500, 250],
+      prompts: ambientPrompts,
+      denoisingSteps: [1000, 800, 600, 400, 250],
       noiseScale: 0.5,
-      resetCache: true, // Fresh start for ambient
+      // AMBIENT: Long transition (15 frames) for smooth visual start
+      transition: {
+        target_prompts: ambientPrompts,
+        num_steps: 15, // 15-frame blend for gentle initial start
+        temporal_interpolation_method: "slerp",
+      },
     };
 
     parameterSenderRef.current.send(ambientParams);
     parametersRef.current = ambientParams;
     setParameters(ambientParams);
-    log("Ambient: sent initial prompt for theme:", theme.name);
+    log("Ambient: started with theme:", theme.name, "(15-frame transition)");
 
-    // Keep-alive interval - just gentle noise_scale variation, NO prompt changes
+    // Keep-alive interval - ONLY noise_scale updates, NO prompts
+    // Server keeps generating toward the prompt we already sent
+    // This prevents any prompt resets or visual discontinuities
     ambientIntervalRef.current = setInterval(() => {
-      if (!parameterSenderRef.current) return;
+      if (!dataChannelRef.current || dataChannelRef.current.readyState !== "open") return;
 
       ambientPhaseRef.current += 0.01;
       const phase = ambientPhaseRef.current;
 
-      // Send ONLY noise_scale updates - same prompt, just subtle evolution
-      const keepAliveParams: ScopeParameters = {
-        prompts: [{ text: basePrompt, weight: 1.0 }], // Same prompt every time
-        denoisingSteps: [1000, 750, 500, 250],
-        noiseScale: 0.48 + 0.04 * Math.sin(phase), // Subtle variation
+      // Send ONLY essential params - no prompts, no transition
+      // Just keeps connection alive with subtle noise variation
+      const keepAlive = {
+        noise_scale: 0.48 + 0.04 * Math.sin(phase),
+        denoising_step_list: [1000, 800, 600, 400, 250],
+        manage_cache: true,
+        paused: false,
       };
-
-      parameterSenderRef.current.send(keepAliveParams);
-    }, 2000); // Very slow - just keep connection alive
+      dataChannelRef.current.send(JSON.stringify(keepAlive));
+    }, 5000); // 5s interval - minimal, just connection keep-alive
 
     setState((prev) => ({ ...prev, playback: "playing" }));
   }, [updateRate, log]); // Removed currentTheme - we use currentThemeRef instead

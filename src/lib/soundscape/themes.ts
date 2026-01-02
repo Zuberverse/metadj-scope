@@ -1,6 +1,21 @@
 /**
  * Soundscape Theme Presets
  * MetaDJ brand-aligned visual themes for audio-reactive generation
+ *
+ * SCOPE API NOTES (what's actually sent vs design intent):
+ * - basePrompt + styleModifiers: SENT (combined with intensity/temporal descriptors)
+ * - negativePrompt: NOT SENT (Scope API doesn't support negative prompts)
+ * - ranges.noiseScale: USED (mapped from audio energy)
+ * - ranges.vaceScale: NOT USED (Soundscape is text-only mode, no VACE ref images)
+ * - ranges.denoisingSteps: USED (fixed 4-step schedule for quality)
+ * - ranges.transitionSpeed: NOT DIRECTLY USED (transitions use fixed step counts)
+ * - mappings.energy → noiseScale: ACTIVE
+ * - mappings.brightness → promptWeight: NOT ACTIVE (promptWeight not a Scope param)
+ * - mappings.texture → vaceScale: NOT ACTIVE (VACE disabled for text-only)
+ * - mappings.beats: ALL ACTIONS NOW = NOISE BOOST ONLY (no prompt changes on beats)
+ * - promptVariations: ONLY triggered by energy_spike (beat trigger bypassed)
+ *
+ * These design values are preserved for future expansion or reference.
  */
 
 import type {
@@ -78,7 +93,7 @@ export const COSMIC_VOYAGE: Theme = {
       // ICE VERSION - blue/white frozen crystals (opposite of the base purple/cyan)
       "frozen crystal cavern, ice blue glacial formations, white snow particles, arctic aurora, crystalline structures, frozen in time, sub-zero deep space",
     ],
-    blendDuration: 4, // Fast transitions so shift is visible
+    blendDuration: 8, // Smooth transitions for seamless energy spike visuals
   },
 };
 
@@ -147,7 +162,7 @@ export const NEON_FOUNDRY: Theme = {
       "machine awakening, gears spinning, power surge, foundry alive",
       "neon overload, lights flashing, industrial pulse, electric storm",
     ],
-    blendDuration: 6,
+    blendDuration: 8, // Smooth transitions for seamless energy spike visuals
   },
 };
 
@@ -202,19 +217,19 @@ export const DIGITAL_FOREST: Theme = {
     ],
     beats: {
       enabled: true,
-      action: "prompt_cycle",
+      action: "pulse_noise", // Changed from prompt_cycle - beats only affect noise now
       intensity: 0.4,
       cooldownMs: 300,
     },
   },
 
   promptVariations: {
-    trigger: "beat",
+    trigger: "energy_spike", // Changed from beat - prompts only change on energy spikes
     prompts: [
       "fireflies swarm, particles dance, energy surge",
       "aurora appears, light ribbons flow, magical pulse",
     ],
-    blendDuration: 12,
+    blendDuration: 8, // Smooth transitions for seamless energy spike visuals
   },
 };
 
@@ -281,7 +296,7 @@ export const SYNTHWAVE_HIGHWAY: Theme = {
       "sun flare, horizon glow, sunset explosion, sky ignition",
       "chrome reflection, mirror flash, metallic surge, 80s power",
     ],
-    blendDuration: 5,
+    blendDuration: 8, // Smooth transitions for seamless energy spike visuals
   },
 };
 
@@ -348,7 +363,7 @@ export const CRYSTAL_SANCTUARY: Theme = {
     ],
     beats: {
       enabled: true,
-      action: "transition_trigger",
+      action: "pulse_noise", // Changed from transition_trigger - beats only affect noise now
       intensity: 0.4,
       cooldownMs: 400,
     },
@@ -360,7 +375,7 @@ export const CRYSTAL_SANCTUARY: Theme = {
       "magical energy surge, crystals illuminate, power awakening",
       "stained glass transforms, light dances, sanctuary pulses",
     ],
-    blendDuration: 10,
+    blendDuration: 8, // Smooth transitions for seamless energy spike visuals
   },
 };
 
@@ -398,14 +413,16 @@ const REACTIVITY_PRESETS: Record<
   chaotic: { noiseSensitivity: 2.0, stepsSensitivity: 1.5 },
 };
 
+// NOTE: All beat responses now result in noise boosts only (no prompt changes or cache resets)
+// The action field is preserved for type compatibility but all are treated as pulse_noise
 const BEAT_RESPONSE_MAP: Record<
   BeatResponse,
   { enabled: boolean; action: Theme["mappings"]["beats"]["action"]; intensity: number }
 > = {
   none: { enabled: false, action: "pulse_noise", intensity: 0 },
   pulse: { enabled: true, action: "pulse_noise", intensity: 0.3 },
-  shift: { enabled: true, action: "prompt_cycle", intensity: 0.4 },
-  burst: { enabled: true, action: "cache_reset", intensity: 0.6 },
+  shift: { enabled: true, action: "pulse_noise", intensity: 0.4 }, // Changed from prompt_cycle
+  burst: { enabled: true, action: "pulse_noise", intensity: 0.5 }, // Changed from cache_reset (no hard cuts)
 };
 
 /**
