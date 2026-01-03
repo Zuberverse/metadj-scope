@@ -1,6 +1,6 @@
 # Soundscape Technical Mechanics
 
-**Last Modified**: 2025-12-31 15:10 EST
+**Last Modified**: 2026-01-03 EST
 **Status**: Active
 
 ## Purpose
@@ -119,8 +119,9 @@ noise_scale = 0.9+ →  Too high  →  Chaotic, breaks coherence (avoid!)
 
 **Soundscape Philosophy**: We NEVER use `reset_cache`. All visual changes use smooth transitions:
 - **Theme changes (music mode)**: 12-frame crossfade via MappingEngine `pendingThemeTransition`
-- **Theme changes (ambient mode)**: 20-frame crossfade via explicit `transition` object in useSoundscape
-- **Ambient start**: 15-frame transition for smooth visual initialization
+- **Theme changes (ambient mode)**: 18-frame crossfade via atomic theme transition
+- **Ambient reinforcement**: 3-frame micro-transitions every 1.5 seconds
+- **Ambient start**: 12-frame transition for smooth visual initialization
 - **Energy spikes**: 8-frame blended prompt transitions (unified blendDuration, with 3s cooldown)
 - **Within-theme prompt changes**: 5-frame transition (DEFAULT_PROMPT_TRANSITION_STEPS)
 - **Beats**: Noise boost only (no prompt changes, no cache resets)
@@ -128,6 +129,98 @@ noise_scale = 0.9+ →  Too high  →  Chaotic, breaks coherence (avoid!)
 **Critical Implementation Note**: Both audio analysis mode AND ambient mode must send a `transition` object when changing prompts. Without it, Scope does an immediate prompt change which causes a visual "jump" back to the new prompt's aesthetic before blending.
 
 This ensures visuals always flow smoothly, even during theme changes and dramatic audio moments.
+
+---
+
+## Ambient Mode (No Audio Required)
+
+Ambient mode generates continuous AI visuals without audio input. This mode is activated when:
+- Scope is connected but no audio is playing
+- User pauses audio playback
+
+### The Problem with "Fire and Forget"
+
+**Previous Approach (broken):**
+```
+T=0:    Send ONE prompt with 15-frame transition
+T=5s:   Keep-alive: noise_scale only
+T=10s:  Keep-alive: noise_scale only
+...
+T=?:    Model drifts, cache ages out → visual snap-back
+```
+
+The diffusion model needs **continuous prompt guidance** for temporal coherence. Without prompts, the model:
+- Loses its "direction" in latent space
+- May snap back to earlier states when cache is managed
+- Can drift toward the initial session state (cosmic-voyage default)
+
+### Continuous Prompt Reinforcement (Current Solution)
+
+**Fixed Approach:**
+```
+T=0:      Send prompt with 12-frame transition (smooth start)
+T=1.5s:   Send prompt with 3-frame transition (reinforcement)
+T=3s:     Send prompt with 3-frame transition (reinforcement)
+...       (continues every 1.5 seconds)
+```
+
+**Key Constants:**
+```typescript
+AMBIENT_INTERVAL_MS = 1500                    // Send full params every 1.5 seconds
+AMBIENT_REINFORCE_TRANSITION_STEPS = 3        // Short transitions for stability
+AMBIENT_THEME_CHANGE_TRANSITION_STEPS = 18    // Longer for theme crossfades
+```
+
+**Why This Works:**
+- Model stays anchored to current theme (never drifts)
+- Short 3-frame transitions maintain visual stability
+- Theme changes can crossfade smoothly from a valid "from" state
+- No gaps where the model is unguided
+
+### Theme Changes in Ambient Mode
+
+**Previous Approach (caused cosmos flash):**
+```
+1. clearPending()      ← Creates a gap
+2. Send new theme prompt
+3. Restart keep-alive interval
+```
+
+The `clearPending()` call created a moment where no prompts were queued. If the model had drifted, the transition would show: `drifted-state → new-theme` (cosmos flash).
+
+**Fixed Approach (atomic transition):**
+```
+1. Send new theme prompt immediately (no clearing)
+2. Interval picks up new theme from ref on next tick
+```
+
+Now transitions always show: `current-theme → new-theme` because the model is continuously reinforced with the current theme.
+
+### Ambient Prompt Structure
+
+Each ambient update sends:
+```typescript
+{
+  prompts: [{ text: basePrompt + styleModifiers + "calm atmosphere, gentle flow", weight: 1.0 }],
+  denoising_step_list: [1000, 800, 600, 400, 250],
+  noise_scale: 0.48 + 0.04 * sin(phase),  // Subtle oscillation for organic feel
+  transition: {
+    target_prompts: prompts,
+    num_steps: 3,  // Short for reinforcement, 12-18 for starts/theme changes
+    temporal_interpolation_method: "slerp"
+  },
+  manage_cache: true,
+  paused: false
+}
+```
+
+### Mode Transitions
+
+| From | To | Behavior |
+|------|-----|----------|
+| Audio playing | Audio paused | `stop()` → `startAmbient()` (seamless) |
+| Ambient | Audio starts | `stopAmbient()` → `start()` (analyzer takes over) |
+| Ambient | Theme change | Atomic prompt switch with 18-frame crossfade |
 
 ---
 

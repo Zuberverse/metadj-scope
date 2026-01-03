@@ -1,6 +1,6 @@
 # Architecture - MetaDJ Scope
 
-**Last Modified**: 2025-12-31 15:00 EST
+**Last Modified**: 2026-01-03 EST
 **Status**: Active
 
 ## Purpose
@@ -11,13 +11,77 @@ Document the architecture for MetaDJ Scope with Soundscape and Avatar Studio act
 ## UI Approach
 
 **Page Structure (current)**: Three dedicated pages for clean separation:
-- **Home** (`/`) — Landing page with tiles linking to each experience
-- **Soundscape** (`/soundscape`) — Dedicated page for music-reactive AI visuals
+- **Home** (`/`) — Immersive landing with experience selector and embedded studio preview
+- **Soundscape** (`/soundscape`) — Full-screen dedicated page for music-reactive AI visuals
 - **Avatar Studio** (`/avatar`) — Dedicated page for MetaDJ avatar generation with VACE
 
-Each experience page shows its own Scope connection status in the header.
+### Homepage Design
 
-**Soundscape (current)**: Custom Next.js UI for in-browser audio analysis and parameter mapping.
+The homepage features an immersive, video-first design:
+
+**Layout:**
+```
+┌────────────────────────────────────────────────────────────┐
+│ [Logo] MetaDJ Scope                    [Nav: Soundscape | Avatar | GitHub] │
+├────────────────────────────────────────────────────────────┤
+│                     [Hackathon Badge]                                      │
+│                                                                            │
+│                   Real-Time AI                                             │
+│                   Video Generation                                         │
+│                                                                            │
+│              Transform audio into flowing visuals...                       │
+├────────────────────────────────────────────────────────────┤
+│                   Choose Your Experience                                   │
+│  ┌──────────────────────┐  ┌──────────────────────────────┐               │
+│  │ 🎵 Soundscape        │  │ ✨ Avatar Studio             │               │
+│  │ Audio → Visuals      │  │ Identity → AI                │               │
+│  │ Transform music...   │  │ Generate MetaDJ...           │               │
+│  │ [Currently Active]   │  │ [Click to Focus]             │               │
+│  └──────────────────────┘  └──────────────────────────────┘               │
+├────────────────────────────────────────────────────────────┤
+│ [●] Soundscape                         [Open Fullscreen ↗] [Connection]   │
+│ ┌────────────────────────────────────────────────────────┐               │
+│ │                                                         │               │
+│ │              [Embedded SoundscapeStudio]                │               │
+│ │                                                         │               │
+│ └────────────────────────────────────────────────────────┘               │
+├────────────────────────────────────────────────────────────┤
+│ Built for Daydream Scope Track Hackathon    [MetaDJ] [Zuberant] [Source]  │
+└────────────────────────────────────────────────────────────┘
+```
+
+**Visual Features:**
+- Ambient glow backgrounds (animated purple/cyan/magenta orbs)
+- Glass-radiant panels with blur effects
+- Gradient typography ("chisel-gradient" for hero text)
+- Interactive cards with hover states and icon containers
+- Connection status indicator with pulse animation
+
+### Soundscape Page Design
+
+Full-screen immersive experience optimized for video viewing:
+
+**Layout:**
+```
+┌────────────────────────────────────────────────────────────┐
+│ [← Home] | [🎵 Soundscape]                    [● Live] [ESC to exit] │
+├────────────────────────────────────────────────────────────┤
+│                                                                        │
+│                    [Full-Height SoundscapeStudio]                      │
+│                                                                        │
+├────────────────────────────────────────────────────────────┤
+│ MetaDJ Scope • Daydream Hackathon        Powered by StreamDiffusion   │
+└────────────────────────────────────────────────────────────┘
+```
+
+**Visual Features:**
+- Subtle ambient background (less prominent than homepage)
+- Branded header with icon and tagline
+- Connection indicator with "Live/Offline" status
+- Keyboard shortcut hints
+- Minimal footer
+
+**Soundscape (current)**: Custom Next.js UI for in-browser audio analysis and parameter mapping. Supports three modes: ambient (no audio), audio playback, and microphone input.
 
 **Avatar Studio (current)**: Custom UI with prompt editing, VACE asset path entry, webcam ingest, and WebRTC video-to-video streaming. Native Scope UI remains a fallback.
 
