@@ -4,7 +4,7 @@
 
 **Platform Notice**: This `AGENTS.md` is optimized for OpenAI Codex via the Codex CLI. Claude Code sessions follow the accompanying `CLAUDE.md`, and Cursor IDE uses `.cursor/rules/` guidance when present; each platform gets the same standards.
 
-**Last Modified**: 2025-12-29 20:10 EST
+**Last Modified**: 2026-01-03 23:27 EST
 *Parent: /3-projects/5-software/AGENTS.md*
 
 ## User Context
@@ -19,8 +19,8 @@
 ## Project Context
 - Hackathon project for the Daydream Scope Track (interactive AI video).
 - Goal: identify a focused Scope-based demo and implement an MVP for the program timeline.
-- Current approach: use the native Scope UI for the hackathon demo; custom UI/UX is deferred.
-- Stack scaffolded: Next.js 16 + TypeScript + Tailwind 4 (inactive until post-hackathon).
+- Current approach: custom Next.js UI is active for Soundscape + Avatar Studio; native Scope UI remains a fallback for troubleshooting.
+- Stack active: Next.js 16 + TypeScript + Tailwind 4 (Soundscape + Avatar Studio UIs live).
 
 ## Visual System Alignment
 - Follow `1-system/1-context/1-knowledge/9-visual-assets/visual-identity-context-standards.md` for UI work.
@@ -63,7 +63,7 @@
 - `npm run start` - Start production server on port 3500
 - `npm run lint` - Run ESLint
 - `npm run type-check` - TypeScript type check
-- `npm run test` - Run Vitest (passes with no tests until a suite exists)
+- `npm run test` - Run Vitest test suite
 
 ## Soundscape MVP Startup
 

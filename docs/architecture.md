@@ -1,6 +1,6 @@
 # Architecture - MetaDJ Scope
 
-**Last Modified**: 2026-01-03 EST
+**Last Modified**: 2026-01-04 18:20 EST
 **Status**: Active
 
 ## Purpose
@@ -107,7 +107,34 @@ Full-screen immersive experience optimized for video viewing:
 - `src/lib/scope/client.ts` - Scope API + WebRTC integration
 - `src/lib/scope/webrtc.ts` - Shared WebRTC session helper
 - `src/lib/scope/pipeline.ts` - Shared health + pipeline readiness helper
+- `src/lib/scope/use-scope-connection.ts` - Shared connection lifecycle hook (see below)
 - `src/components/soundscape/*` - UI controls and visualization
+
+### Shared Connection Hook
+
+The `useScopeConnection` hook provides unified connection lifecycle management:
+
+```typescript
+import { useScopeConnection, getScopeClient } from "@/lib/scope";
+
+const {
+  connectionState,  // "disconnected" | "connecting" | "connected" | "reconnecting" | "failed"
+  statusMessage,    // Human-readable status
+  error,            // ScopeError | null with typed error codes
+  connect,          // Initiate connection
+  disconnect,       // Clean disconnect
+  retry,            // Retry after failure (resets attempts)
+  clearError,       // Dismiss error
+} = useScopeConnection({
+  scopeClient: getScopeClient(),
+  pipelineId: "longlive",
+  loadParams: { width: 576, height: 320, vace_enabled: false },
+  onStream: (stream) => setVideoStream(stream),
+  onDataChannelOpen: (channel) => setDataChannel(channel),
+});
+```
+
+**Error Codes**: `HEALTH_CHECK_FAILED`, `PIPELINE_LOAD_FAILED`, `CONNECTION_FAILED`, `CONNECTION_LOST`, `STREAM_STOPPED`, `DATA_CHANNEL_ERROR`
 
 ### Audio Analysis Configuration
 
@@ -127,9 +154,8 @@ Full-screen immersive experience optimized for video viewing:
 
 ### Generation Configuration
 
-**Denoising Steps**: `[1000, 800, 600, 400, 250]` (5-step schedule)
-- Higher quality visuals (~12-15 FPS on RTX 6000)
-- Alternative: `[1000, 750, 500, 250]` for 4-step at ~15-20 FPS
+**Denoising Steps**: `[1000, 750, 500, 250]` (4-step schedule)
+- Balanced quality visuals (~15-20 FPS on RTX 6000)
 - Alternative: `[1000, 500, 250]` for 3-step at ~20-25 FPS
 - Alternative: `[1000, 250]` for 2-step at ~25-35 FPS (lower quality)
 
@@ -140,7 +166,7 @@ Full-screen immersive experience optimized for video viewing:
 - Beat action: `pulse_noise` (noise boost only, no prompt changes, no cache reset)
 - Temporal variation: REMOVED (prompts are static per energy level—no cycling or looping)
 
-**Debug Logging** (dev mode): Console logs `[Scope] Sending prompt:` to verify prompt updates
+**Debug Logging** (dev mode): Console logs `[Scope] Theme:` to verify theme changes are being sent
 
 ---
 
@@ -247,7 +273,7 @@ curl -X POST "https://YOUR-POD-8000.proxy.runpod.net/api/v1/pipeline/load" \
 ### Debugging Tips
 
 1. Check browser console for `[Soundscape]` prefixed logs
-2. Check for `[Scope] Sending prompt:` logs to verify prompt changes
+2. Check for `[Scope] Theme:` logs to verify theme transitions
 3. Verify pipeline status: `curl https://YOUR-POD-8000.proxy.runpod.net/api/v1/pipeline/status`
 4. Check video element: `document.querySelector('video').srcObject.getTracks()[0].muted` should be `false`
 5. ICE state should reach `connected` or `completed`

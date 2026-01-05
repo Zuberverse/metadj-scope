@@ -1,6 +1,6 @@
 # Changelog
 
-**Last Modified**: 2025-12-30 22:15 EST
+**Last Modified**: 2026-01-04 18:20 EST
 
 All notable changes to this project will be documented in this file.
 
@@ -10,6 +10,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Skip link** for keyboard accessibility in layout (`src/app/layout.tsx`)
+- **Mobile navigation** with hamburger menu on homepage (`src/app/page.tsx`)
+- **Error dismiss buttons** on Soundscape and Avatar Studio error alerts with `role="alert"`
+- **API proxy path validation** - Allowlist restricts Scope API proxy to known endpoints (security)
+- **`useScopeConnection` hook** - Shared connection lifecycle management (`src/lib/scope/use-scope-connection.ts`)
+  - Typed error handling with `ScopeError` type and error codes
+  - Connection state machine (disconnected → connecting → connected/failed → reconnecting)
+  - Automatic reconnection with configurable attempts and backoff
+  - Unified cleanup and resource management
 - Home focus selector with two large tiles to switch between Soundscape and Avatar Studio
 - Avatar Studio status messaging during connection flow (health, pipeline load, SDP, connected)
 - Avatar Studio "Apply Updates" button to send prompt/VACE changes to the active stream
@@ -51,6 +60,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ARIA labels and accessibility attributes to UI components
 - `aria-pressed` state for toggle buttons in PromptEditor
 - `aria-live` regions for dynamic content updates
+- Escape key handler on Soundscape page to return to home
+- Soundscape escape shortcut regression test
 
 ### Changed
 - Avatar Studio promoted to active MVP alongside Soundscape
@@ -59,7 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Avatar Studio start button now requires webcam to be active
 - Soundscape UI parameter updates throttled to avoid unnecessary re-renders
 - ParameterSender clears pending timers when data channel closes
-- **Denoising steps set to 4-step schedule `[1000, 750, 500, 250]`** for high quality visuals (~15-20 FPS on RTX 6000)
+- **Denoising steps set to 4-step schedule `[1000, 750, 500, 250]`** aligned with Scope examples (~15-20 FPS on RTX 6000)
 - **Audio normalization tuned for better sensitivity**: `energyMax: 0.15` (was 0.5), `spectralCentroidMin: 100` (was 200), `spectralCentroidMax: 6000` (was 8000)
 - **noise_scale ranges tightened for visual stability**: All themes now use 0.25–0.65 range (was 0.3–0.95) to prevent chaotic high-noise states
 - **Beat boost intensity reduced**: Base beat response 0.08 (was 0.15), pulse_noise multiplier 0.25 (was 0.5), energy spike boost 0.12 (was 0.25)
@@ -88,7 +99,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **All themes now use `pulse_noise` beat action** instead of `cache_reset` for smoother visual continuity (no periodic resets)
 - **Beat modifiers now deterministic** (cycling through array) instead of random selection to reduce prompt thrashing
 - **Prompt sending logic simplified** - always send prompts directly, add transition object only when blending between prompts
-- **Debug logging for prompts** in dev mode - console logs `[Scope] Sending prompt:` to verify prompt updates are being sent
+- **Debug logging for themes** in dev mode - console logs `[Scope] Theme:` to verify theme changes are being sent
 - **Resolution optimized for FPS** - widescreen now 576×320, portrait 320×576 (both ~15-20 FPS, Daydream defaults); dimensions must be divisible by 64
 - **Energy spike prompt selection now deterministic** - cycles through variations instead of random selection to prevent jarring visual jumps
 - **Pipeline load params now conditional** - `vace_enabled` only passed for `longlive` pipeline (other pipelines may not accept it)
@@ -99,6 +110,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `passthrough` ready (no model required)
 
 ### Fixed
+- **TypeScript errors in webrtc.ts** - Fixed RTCDataChannel closure capture issue (lines 78-92)
+- **React Compiler compliance** - ReferenceImage.tsx now uses render-time prop sync instead of effect-based setState
+- **Missing callback dependencies** - Added `debug`, `log` to handleAnalysis; added `stopAmbient` to handleConnectScope
+- **Test typing issues** - Fixed globalThis augmentation and Next.js Image mock in test files
 - Soundscape disconnect now clears the data channel and stops ambient mode
 - Avatar Studio data channel closure now stops the stream and cleans up connection state
 - Audio mode now properly connects parameter sender to data channel when audio is connected after Scope (was causing audio to not drive visuals)
@@ -121,6 +136,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - TypeScript type errors: `WebRtcOfferResponse.type` now uses `RTCSdpType`
 - TypeScript type errors: `IceCandidatePayload.candidate` now accepts `undefined`
 - Added explicit `type="button"` to all button elements
+- DataChannel sends now guard against transient send failures when channels close
+
+### Documentation
+- Synced AGENTS/CLAUDE project context to reflect active custom UI
+- Moved tools reference to `docs/tools.md` and aligned documentation index
 
 ### Removed
 - Unused `lucide-react` dependency (no imports found in source)

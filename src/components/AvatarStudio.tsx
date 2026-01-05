@@ -445,8 +445,18 @@ export function AvatarStudio({ onConnectionChange }: AvatarStudioProps) {
             <div className="absolute inset-0 z-10 pointer-events-none shadow-[inset_0_0_120px_rgba(0,0,0,0.9)]" />
 
             {error && (
-              <div className="absolute top-4 inset-x-4 z-30 p-4 glass-radiant bg-red-950/40 border-red-500/30 rounded-2xl animate-bounce-subtle">
-                <p className="text-red-200 text-[10px] font-black uppercase tracking-[0.2em]">{error}</p>
+              <div className="absolute top-4 inset-x-4 z-30 p-4 glass-radiant bg-red-950/40 border-red-500/30 rounded-2xl animate-bounce-subtle" role="alert">
+                <button
+                  type="button"
+                  onClick={() => setError(null)}
+                  className="absolute top-2 right-2 p-1 text-red-300/60 hover:text-red-300 transition-colors"
+                  aria-label="Dismiss error"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                <p className="text-red-200 text-[10px] font-black uppercase tracking-[0.2em] pr-6">{error}</p>
               </div>
             )}
 

@@ -4,10 +4,13 @@ import { createRoot } from "react-dom/client";
 import { describe, expect, it, vi } from "vitest";
 import { AvatarStudio } from "../src/components/AvatarStudio";
 
+// Mock Next.js Image component - filter out Next.js-specific props
 vi.mock("next/image", () => ({
-  default: (props: React.ImgHTMLAttributes<HTMLImageElement>) => {
-    const { src, alt, fill, unoptimized, ...rest } = props;
-    return <img src={src as string} alt={alt} {...rest} />;
+  default: function MockImage({ src, alt, fill, unoptimized, priority, ...rest }: Record<string, unknown>) {
+    // Silence unused variable warnings by void-ing them
+    void fill; void unoptimized; void priority;
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={src as string} alt={alt as string} {...rest} />;
   },
 }));
 

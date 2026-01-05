@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import Image from "next/image";
 
 interface ReferenceImageProps {
@@ -11,15 +11,18 @@ interface ReferenceImageProps {
 export function ReferenceImage({ src, onImageChange }: ReferenceImageProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(false);
+  // Track which src value was used to set assetPath, enabling prop-to-state sync during render
+  const [trackedSrc, setTrackedSrc] = useState(src);
   const [assetPath, setAssetPath] = useState(
     src.startsWith("/assets/") ? src : ""
   );
 
-  useEffect(() => {
-    if (src.startsWith("/assets/")) {
-      setAssetPath(src);
-    }
-  }, [src]);
+  // Sync asset path when src prop changes to an asset path (during render, not in effect)
+  // This is React's recommended pattern for "updating state based on props"
+  if (src !== trackedSrc && src.startsWith("/assets/")) {
+    setTrackedSrc(src);
+    setAssetPath(src);
+  }
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

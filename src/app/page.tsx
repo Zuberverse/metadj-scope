@@ -78,6 +78,7 @@ export default function Home() {
   const [focus, setFocus] = useState<ExperienceMode>("soundscape");
   const [soundscapeConnected, setSoundscapeConnected] = useState(false);
   const [avatarConnected, setAvatarConnected] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const focusedExperience = EXPERIENCES[focus];
   const isFocusedConnected =
     focus === "soundscape" ? soundscapeConnected : avatarConnected;
@@ -102,7 +103,8 @@ export default function Home() {
             <p className="text-[10px] text-white/40 uppercase tracking-[0.2em]">AI Video Engine</p>
           </div>
         </div>
-        <nav className="hidden md:flex items-center gap-6">
+        {/* Desktop Navigation */}
+        <nav aria-label="Main navigation" className="hidden md:flex items-center gap-6">
           <Link href="/soundscape" className="text-sm text-white/60 hover:text-white transition-colors">
             Soundscape
           </Link>
@@ -118,16 +120,69 @@ export default function Home() {
             GitHub
           </a>
         </nav>
+
+        {/* Mobile Menu Button */}
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="md:hidden p-2 text-white/60 hover:text-white transition-colors"
+          aria-expanded={mobileMenuOpen}
+          aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {mobileMenuOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
+        </button>
       </header>
 
+      {/* Mobile Navigation Menu */}
+      {mobileMenuOpen && (
+        <nav
+          aria-label="Mobile navigation"
+          className="md:hidden relative z-20 glass border-b border-white/10"
+        >
+          <div className="flex flex-col px-6 py-4 space-y-3">
+            <Link
+              href="/soundscape"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-sm text-white/60 hover:text-white transition-colors py-2"
+            >
+              Soundscape
+            </Link>
+            <Link
+              href="/avatar"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-sm text-white/60 hover:text-white transition-colors py-2"
+            >
+              Avatar
+            </Link>
+            <a
+              href="https://github.com/Zuberverse/metadj-scope"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setMobileMenuOpen(false)}
+              className="text-sm text-white/60 hover:text-white transition-colors py-2"
+            >
+              GitHub
+            </a>
+          </div>
+        </nav>
+      )}
+
+      {/* Main Content */}
+      <main id="main-content" role="main">
       {/* Hero Section */}
-      <section className="relative z-10 text-center px-6 py-12 md:py-16">
+      <section className="relative z-10 text-center px-6 py-12 md:py-16" aria-labelledby="hero-heading">
         <div className="inline-block mb-6">
           <span className="px-4 py-1.5 glass rounded-full text-[10px] font-bold uppercase tracking-[0.3em] text-scope-cyan border border-scope-cyan/30">
             Daydream Scope Hackathon
           </span>
         </div>
-        <h2 className="text-4xl md:text-6xl lg:text-7xl font-display font-bold mb-6 leading-tight">
+        <h2 id="hero-heading" className="text-4xl md:text-6xl lg:text-7xl font-display font-bold mb-6 leading-tight">
           <span className="chisel-gradient">Real-Time AI</span>
           <br />
           <span className="text-white">Video Generation</span>
@@ -253,7 +308,12 @@ export default function Home() {
                   : 'bg-white/20'}
               `} />
               <div>
-                <h3 className="text-xl md:text-2xl font-display font-semibold">
+                <h3
+                  className="text-xl md:text-2xl font-display font-semibold"
+                  data-testid="focus-heading"
+                  aria-live="polite"
+                  aria-atomic="true"
+                >
                   {focusedExperience.title}
                 </h3>
                 <p className="text-sm text-white/40">{focusedExperience.subtitle}</p>
@@ -283,6 +343,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      </main>
 
       {/* Footer */}
       <footer className="relative z-10 px-6 md:px-12 py-8 border-t border-white/5">

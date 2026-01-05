@@ -1,6 +1,6 @@
 # Soundscape Technical Mechanics
 
-**Last Modified**: 2026-01-03 EST
+**Last Modified**: 2026-01-04 07:38 EST
 **Status**: Active
 
 ## Purpose
@@ -202,7 +202,7 @@ Each ambient update sends:
 ```typescript
 {
   prompts: [{ text: basePrompt + styleModifiers + "calm atmosphere, gentle flow", weight: 1.0 }],
-  denoising_step_list: [1000, 800, 600, 400, 250],
+  denoising_step_list: [1000, 750, 500, 250],
   noise_scale: 0.48 + 0.04 * sin(phase),  // Subtle oscillation for organic feel
   transition: {
     target_prompts: prompts,
@@ -266,8 +266,8 @@ Depends on resolution and GPU:
 | 1024×576 | 590K | ~6-10 FPS |
 
 **Current Soundscape defaults** (dimensions must be divisible by 64):
-- Widescreen (16:9): 576×320 → ~15-20 FPS (Daydream default flipped)
-- Portrait (9:16): 320×576 → ~15-20 FPS (Daydream default)
+- Widescreen (16:9): 576×320 → ~15-20 FPS (Daydream default flipped, 4-step schedule)
+- Portrait (9:16): 320×576 → ~15-20 FPS (Daydream default, 4-step schedule)
 
 ### Why Low FPS Still Feels Smooth
 
@@ -280,8 +280,8 @@ Latent cache continuity creates **perceptual smoothness**. Each frame flows from
 The `denoising_step_list` controls quality vs speed.
 
 ```typescript
-// Current fixed setting (optimized for quality)
-denoising_step_list: [1000, 800, 600, 400, 250]
+// Current fixed setting (balanced quality + speed)
+denoising_step_list: [1000, 750, 500, 250]
 ```
 
 Each number is a timestep in the diffusion schedule:
@@ -293,12 +293,11 @@ More steps = higher quality, slower. Fewer steps = faster, lower quality.
 
 | Steps | Quality | Speed (RTX 6000) |
 |-------|---------|------------------|
-| `[1000, 800, 600, 400, 250]` | Higher | ~12-15 FPS (5 denoising passes) ← **current** |
-| `[1000, 750, 500, 250]` | High | ~15-20 FPS (4 denoising passes) |
+| `[1000, 750, 500, 250]` | High | ~15-20 FPS (4 denoising passes) ← **current** |
 | `[1000, 500, 250]` | Good | ~20-25 FPS (3 denoising passes) |
 | `[1000, 250]` | Acceptable | ~25-35 FPS (2 denoising passes) |
 
-**We use fixed 5-step** for higher quality visuals with CSS post-processing sharpening.
+**We use fixed 4-step** for balanced quality and realtime FPS.
 
 ---
 
@@ -411,4 +410,4 @@ transition: {
 - Smooth transitions everywhere - no hard cuts
 - Beats are felt through noise, not prompt changes
 - Prompts are static per energy level - no looping or cycling
-- 5-step denoising + CSS sharpening for crisp visuals
+- 4-step denoising + CSS sharpening for crisp visuals

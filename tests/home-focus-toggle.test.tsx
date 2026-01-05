@@ -12,6 +12,18 @@ vi.mock("next/dynamic", () => ({
   },
 }));
 
+vi.mock("next/link", () => ({
+  default: ({
+    href,
+    children,
+    ...props
+  }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+}));
+
 function renderHome() {
   const container = document.createElement("div");
   document.body.appendChild(container);
@@ -38,7 +50,7 @@ describe("Home focus toggle", () => {
   it("switches focus mode from Soundscape to Avatar Studio", () => {
     const { container, unmount } = renderHome();
 
-    const focusHeading = container.querySelector('section[aria-live="polite"] h2');
+    const focusHeading = container.querySelector('[data-testid="focus-heading"]');
     expect(focusHeading?.textContent).toContain("Soundscape");
 
     const buttons = Array.from(container.querySelectorAll("button"));

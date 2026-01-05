@@ -1,6 +1,6 @@
 # MetaDJ Soundscape — MVP Specification
 
-**Last Modified**: 2025-12-30 10:47 EST
+**Last Modified**: 2026-01-04 15:05 EST
 **Status**: MVP Implementation Complete
 **Version**: 0.4.0
 
@@ -261,9 +261,9 @@ interface Theme {
   styleModifiers: string[];
   negativePrompt: string;
 
-  // Parameter Ranges (Scope will operate within these)
+  // Parameter Ranges (used for runtime mapping where enabled)
   ranges: {
-    denoisingSteps: { min: number[]; max: number[] };  // e.g., [700,400] to [1000,750,500,250]
+    denoisingSteps: { min: number[]; max: number[] };  // Reserved: fixed 4-step schedule used in engine
     noiseScale: { min: number; max: number };          // 0.0 to 1.0
     vaceScale: { min: number; max: number };           // 0.0 to 2.0
     transitionSpeed: { min: number; max: number };     // Frames for prompt transitions
@@ -299,6 +299,8 @@ interface BeatMapping {
   cooldownMs?: number;  // Minimum time between triggers (default: 200ms)
 }
 
+**Note**: Soundscape uses a fixed 4-step denoising schedule; per-theme denoising ranges are reserved for future tuning.
+
 // Beat handler with cooldown to prevent visual stuttering
 class BeatHandler {
   private lastTriggerTime = 0;
@@ -327,6 +329,7 @@ class MappingEngine {
   private featureBuffer: FeatureBuffer;
   private lastParams: ScopeParameters;
   private normalizationConfig: NormalizationConfig;
+  private fixedDenoisingSteps = [1000, 750, 500, 250];
 
   computeParameters(): ScopeParameters {
     const features = this.featureBuffer;
@@ -355,7 +358,7 @@ class MappingEngine {
     // Smooth transitions
     return this.smooth(this.lastParams, {
       noiseScale,
-      denoisingSteps: this.computeDenoisingSteps(normalizedEnergy),
+      denoisingSteps: this.fixedDenoisingSteps,
       prompts: this.computePrompts(features),
     });
   }
@@ -377,19 +380,7 @@ class MappingEngine {
     }
   }
 
-  // Denoising steps interpolation (handles different array lengths)
-  private computeDenoisingSteps(normalizedEnergy: number): number[] {
-    const { min, max } = this.theme.ranges.denoisingSteps;
-    // Use energy to blend between fewer steps (fast) and more steps (quality)
-    if (normalizedEnergy > 0.7) return max;      // High energy: max quality
-    if (normalizedEnergy < 0.3) return min;      // Low energy: faster
-    return this.interpolateSteps(min, max, normalizedEnergy);  // Blend
-  }
-
-  private interpolateSteps(min: number[], max: number[], t: number): number[] {
-    // For MVP: switch between presets rather than interpolate individual values
-    return t > 0.5 ? max : min;
-  }
+  // Denoising steps are fixed for Soundscape (4-step schedule).
 }
 
 // Normalization configuration (can be per-theme or global)
@@ -973,7 +964,7 @@ const NEON_FOUNDRY: Theme = {
   negativePrompt: 'outdoor, nature, daylight, cartoon',
 
   ranges: {
-    denoisingSteps: { min: [800, 500], max: [1000, 800, 600, 400] },
+    denoisingSteps: { min: [800, 500], max: [1000, 750, 500, 250] },
     noiseScale: { min: 0.4, max: 0.85 },
     vaceScale: { min: 0.8, max: 1.8 },
     transitionSpeed: { min: 6, max: 20 },
@@ -1106,7 +1097,7 @@ const CRYSTAL_SANCTUARY: Theme = {
   negativePrompt: 'modern, outdoor, daylight, minimalist',
 
   ranges: {
-    denoisingSteps: { min: [800, 500], max: [1000, 800, 600, 400] },
+    denoisingSteps: { min: [800, 500], max: [1000, 750, 500, 250] },
     noiseScale: { min: 0.35, max: 0.8 },
     vaceScale: { min: 0.7, max: 1.6 },
     transitionSpeed: { min: 8, max: 20 },

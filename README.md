@@ -1,6 +1,6 @@
 # MetaDJ Scope
 
-**Last Modified**: 2025-12-31 15:15 EST
+**Last Modified**: 2026-01-03 23:27 EST
 
 Hackathon exploration project for the Daydream Scope Track (Interactive AI Video Program). Building real-time AI video generation across **Soundscape** and **Avatar Studio**, with dedicated pages for each experience.
 
@@ -257,7 +257,7 @@ Complete platform documentation extracted from official sources:
 ### Reference
 - `docs/api/` - API integration notes
 - `docs/features/` - Feature specifications
-- `tools.md` - Tools and integrations
+- `docs/tools.md` - Tools and integrations
 - `CHANGELOG.md` - Project milestones
 
 ## Key Decisions

@@ -158,10 +158,10 @@ export class MappingEngine {
       this.theme.ranges.noiseScale
     );
 
-    // Fixed denoising steps - 5-step schedule for higher quality
-    // Optimized for RTX 6000: ~12-15 fps (was 4-step at ~15-20 fps)
+    // Fixed denoising steps - 4-step schedule aligned with Scope examples
+    // Optimized for RTX 6000: ~15-20 fps
     // More steps = sharper, more coherent visuals but slower frame rate
-    const denoisingSteps = [1000, 800, 600, 400, 250];
+    const denoisingSteps = [1000, 750, 500, 250];
 
     // Handle beat effects
     const beatEffect = this.handleBeatEffects(beat, derived);

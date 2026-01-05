@@ -197,8 +197,8 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
       });
 
       setConnectionStatus("Creating connection...");
-      // 5-step schedule for higher quality (~12-15 fps on RTX 6000)
-      const DENOISING_STEPS = [1000, 800, 600, 400, 250];
+      // 4-step schedule aligned with Scope examples (~15-20 fps on RTX 6000)
+      const DENOISING_STEPS = [1000, 750, 500, 250];
       const initialParams = currentTheme
         ? {
           prompts: [{ text: currentTheme.basePrompt, weight: 1.0 }],
@@ -286,7 +286,7 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
     } finally {
       setIsConnecting(false);
     }
-  }, [aspectRatio, currentTheme, setDataChannel, handleDisconnectScope, isPlaying, startAmbient]);
+  }, [aspectRatio, currentTheme, setDataChannel, handleDisconnectScope, isPlaying, startAmbient, stopAmbient]);
 
   return (
     <div className="h-full flex flex-col">
@@ -347,8 +347,19 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
                 Connect to Scope
               </button>
               {scopeError && (
-                <div className="mt-6 glass bg-red-500/10 border border-red-500/30 rounded-xl p-4">
-                  <p className="text-red-400 text-sm mb-2">{scopeError}</p>
+                <div className="mt-6 glass bg-red-500/10 border border-red-500/30 rounded-xl p-4 relative" role="alert">
+                  {/* Dismiss button */}
+                  <button
+                    type="button"
+                    onClick={() => setScopeError(null)}
+                    className="absolute top-2 right-2 p-1 text-red-400/60 hover:text-red-400 transition-colors"
+                    aria-label="Dismiss error"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                  <p className="text-red-400 text-sm mb-2 pr-6">{scopeError}</p>
                   {reconnectAttempts >= MAX_RECONNECT_ATTEMPTS && (
                     <button
                       type="button"

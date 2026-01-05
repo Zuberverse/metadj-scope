@@ -15,6 +15,22 @@ const HEADER_ALLOWLIST = ["content-type", "accept", "authorization"];
 const PROXY_ENABLED = process.env.NODE_ENV !== "production" || process.env.SCOPE_PROXY_ENABLE === "true";
 const PROXY_TOKEN = process.env.SCOPE_PROXY_TOKEN;
 
+// Security: Allowlist of valid Scope API path prefixes
+// Prevents arbitrary endpoint access through the proxy
+const PATH_ALLOWLIST = [
+  "health",           // Health check (root-level)
+  "api/v1/pipeline",  // Pipeline management
+  "api/v1/webrtc",    // WebRTC signaling
+  "api/v1/prompts",   // Prompt operations
+  "api/v1/session",   // Session management
+];
+
+function isPathAllowed(path: string): boolean {
+  // Normalize: remove leading/trailing slashes, prevent path traversal
+  const normalized = path.replace(/^\/+|\/+$/g, "").replace(/\.\./g, "");
+  return PATH_ALLOWLIST.some((allowed) => normalized.startsWith(allowed));
+}
+
 // Timeout configuration (in milliseconds)
 const DEFAULT_TIMEOUT = 30000;
 const PIPELINE_LOAD_TIMEOUT = 60000;
@@ -33,6 +49,16 @@ async function proxyRequest(
 ) {
   const { path } = await params;
   const targetPath = path.join("/");
+
+  // Security: Validate path against allowlist before proxying
+  if (!isPathAllowed(targetPath)) {
+    console.warn(`[Scope Proxy] Blocked request to non-allowed path: ${targetPath}`);
+    return NextResponse.json(
+      { error: "Path not allowed" },
+      { status: 403 }
+    );
+  }
+
   const targetUrl = `${SCOPE_API_URL}/${targetPath}${request.nextUrl.search}`;
 
   if (!PROXY_ENABLED) {

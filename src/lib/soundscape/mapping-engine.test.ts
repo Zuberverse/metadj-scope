@@ -26,7 +26,7 @@ const makeAnalysis = (energy: number, isBeat = false): AnalysisState => ({
   },
 });
 
-// Fixed denoising steps - 4-step schedule for high quality
+// Fixed denoising steps - 4-step schedule aligned with Scope examples
 const FIXED_DENOISING_STEPS = [1000, 750, 500, 250];
 
 describe("MappingEngine", () => {

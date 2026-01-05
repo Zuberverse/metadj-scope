@@ -76,17 +76,19 @@ export async function createScopeWebRtcSession(
     } = options.dataChannel ?? {};
 
     dataChannel = pc.createDataChannel(label, channelOptions);
+    // Capture reference for callbacks - channel is guaranteed defined at this point
+    const channel = dataChannel;
 
     if (onOpen) {
-      dataChannel.onopen = () => onOpen(dataChannel);
+      channel.onopen = () => onOpen(channel);
     }
 
     if (onClose) {
-      dataChannel.onclose = () => onClose(dataChannel);
+      channel.onclose = () => onClose(channel);
     }
 
     if (onMessage) {
-      dataChannel.onmessage = (event) => onMessage(event, dataChannel);
+      channel.onmessage = (event) => onMessage(event, channel);
     }
   }
 

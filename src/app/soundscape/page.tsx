@@ -5,12 +5,25 @@
 
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { SoundscapeStudio } from "@/components/soundscape";
 
 export default function SoundscapePage() {
   const [isConnected, setIsConnected] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        router.push("/");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [router]);
 
   return (
     <div className="h-screen flex flex-col bg-scope-bg overflow-hidden relative">

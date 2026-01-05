@@ -212,7 +212,7 @@ export function useSoundscape(options: UseSoundscapeOptions = {}): UseSoundscape
         // Send immediately with long transition for seamless crossfade
         const themeChangeParams: ScopeParameters = {
           prompts: newPrompts,
-          denoisingSteps: [1000, 800, 600, 400, 250],
+          denoisingSteps: [1000, 750, 500, 250],
           noiseScale: 0.5,
           transition: {
             target_prompts: newPrompts,
@@ -222,14 +222,18 @@ export function useSoundscape(options: UseSoundscapeOptions = {}): UseSoundscape
         };
 
         // Send directly to data channel (bypass rate limiter for immediate theme change)
-        dataChannelRef.current.send(JSON.stringify({
-          prompts: themeChangeParams.prompts,
-          denoising_step_list: themeChangeParams.denoisingSteps,
-          noise_scale: themeChangeParams.noiseScale,
-          transition: themeChangeParams.transition,
-          manage_cache: true,
-          paused: false,
-        }));
+        try {
+          dataChannelRef.current.send(JSON.stringify({
+            prompts: themeChangeParams.prompts,
+            denoising_step_list: themeChangeParams.denoisingSteps,
+            noise_scale: themeChangeParams.noiseScale,
+            transition: themeChangeParams.transition,
+            manage_cache: true,
+            paused: false,
+          }));
+        } catch (error) {
+          log("Ambient: failed to send theme transition params", error);
+        }
 
         parametersRef.current = themeChangeParams;
         setParameters(themeChangeParams);
@@ -377,7 +381,7 @@ export function useSoundscape(options: UseSoundscapeOptions = {}): UseSoundscape
         lastUiUpdateRef.current = now;
       }
     },
-    [uiUpdateIntervalMs]
+    [uiUpdateIntervalMs, debug, log]
   );
 
   const start = useCallback(async () => {
@@ -480,7 +484,7 @@ export function useSoundscape(options: UseSoundscapeOptions = {}): UseSoundscape
 
       const params = {
         prompts,
-        denoising_step_list: [1000, 800, 600, 400, 250],
+        denoising_step_list: [1000, 750, 500, 250],
         noise_scale: noiseScale,
         // Short transition for prompt reinforcement - keeps visuals stable
         transition,
@@ -488,12 +492,17 @@ export function useSoundscape(options: UseSoundscapeOptions = {}): UseSoundscape
         paused: false,
       };
 
-      dataChannelRef.current.send(JSON.stringify(params));
+      try {
+        dataChannelRef.current.send(JSON.stringify(params));
+      } catch (error) {
+        log("Ambient: data channel send failed", error);
+        return;
+      }
 
       // Update React state for UI
       const scopeParams: ScopeParameters = {
         prompts,
-        denoisingSteps: [1000, 800, 600, 400, 250],
+        denoisingSteps: [1000, 750, 500, 250],
         noiseScale,
         transition,
       };
