@@ -1,37 +1,37 @@
 # MetaDJ Scope
 
-**Last Modified**: 2026-01-07 01:03 EST
+**Last Modified**: 2026-01-07 EST
 
-Hackathon exploration project for the Daydream Scope Track (Interactive AI Video Program). Building real-time AI video generation across **Soundscape** and **Avatar Studio**, with dedicated pages for each experience.
+Hackathon exploration project for the Daydream Scope Track (Interactive AI Video Program). Real-time AI video generation powered by StreamDiffusion.
 
 ## Overview
-- **Phase**: Hackathon active - Soundscape + Avatar Studio MVPs, polishing + testing
-- **Direction**: Audio-reactive AI video + MetaDJ avatar generation
+- **Phase**: MVP Complete - Soundscape demo with infinite loop playback
+- **Direction**: Audio-reactive AI video generation
 - **RunPod**: Deployed (`metadj-scope` on RTX Pro 6000)
-- **Features**: Soundscape (active), Avatar Studio (active), Storyteller (future)
+- **Current Module**: Soundscape (audio-reactive visuals)
 
 ## Key Features (Status)
-- **Soundscape** (active): Audio-reactive visuals driven by real-time music analysis.
-- **Avatar Studio** (active): Webcam-driven MetaDJ avatar generation with VACE identity lock.
+- **Soundscape** (MVP): Audio-reactive visuals driven by real-time music analysis. Demo track loops infinitely.
+- **Avatar Studio** (future): Webcam-driven MetaDJ avatar generation with VACE identity lock.
 - **Storyteller** (future): Narrative visual mode for spoken or scripted prompts.
 
+> **MVP Note**: This release focuses on Soundscape with the demo track. Additional modules (Avatar Studio, custom audio upload, mic input) will be added in future releases.
+
 ## Technology Stack
-- Next.js 16 + TypeScript + Tailwind 4 (Soundscape + Avatar Studio UIs active)
-- Scope native UI fallback (Avatar Studio troubleshooting)
+- Next.js 16 + TypeScript + Tailwind 4
+- Meyda audio analysis library
 - RunPod deployment (RTX Pro 6000) for real-time inference
+- WebRTC for low-latency video streaming
 
 ## UI Approach
 
-**Page Structure**: Three dedicated pages for clean separation:
-- **Home** (`/`) — Landing page with tiles linking to each experience
-- **Soundscape** (`/soundscape`) — Music-reactive AI visual generation
-- **Avatar Studio** (`/avatar`) — MetaDJ avatar generation with VACE
+**MVP Structure**: Single-module focused experience:
+- **Root** (`/`) — Redirects to Soundscape
+- **Soundscape** (`/soundscape`) — Music-reactive AI visual generation (MVP)
 
-**Soundscape**: Custom UI with in-browser audio analysis and parameter mapping streamed to Scope over WebRTC.
+**Soundscape**: Custom UI with in-browser audio analysis and parameter mapping streamed to Scope over WebRTC. Demo track loops infinitely for seamless visual generation.
 
-**Avatar Studio**: Custom UI for prompt + VACE reference path + webcam ingest + WebRTC video-to-video streaming. Use "Apply Updates" to push prompt/VACE changes to the live stream. Native Scope UI remains available as a fallback.
-
-**Access Scope UI**: https://t68d6nv3pi7uia-8000.proxy.runpod.net
+**Future Modules**: Avatar Studio and additional audio input modes (upload, mic) will be added in future releases.
 
 ## Hackathon Context
 - **Program**: Daydream 2025 Interactive AI Video Program (Scope Track)
@@ -67,12 +67,12 @@ Soundscape transforms music into AI-generated visuals in real-time. Audio featur
 [Browser Video] ← ──────────────── [RTCPeerConnection] ← ─────────────── [Generated Frames]
 ```
 
-### Audio Input Modes
+### Audio Input (MVP)
 | Mode | Description |
 |------|-------------|
-| **Demo** | Built-in track (Metaversal Odyssey) for testing |
-| **Upload** | User-selected audio file |
-| **Mic** | Live microphone input with echo cancellation |
+| **Demo** | Built-in track (Metaversal Odyssey) with infinite loop |
+
+> **Future**: Upload and Mic modes will be added in future releases.
 
 ### Preset Themes
 - **Cosmic Voyage** - Neon digital space with energy-responsive noise
@@ -89,20 +89,10 @@ Soundscape transforms music into AI-generated visuals in real-time. Audio featur
 ### Quick Start
 ```bash
 npm run dev
-# Open http://localhost:3500/soundscape
-# 1. Select Demo mode and hit Play
-# 2. Click "Connect to Scope" (requires RunPod pod running)
-# 3. Watch audio-reactive visuals generate
-```
-
-### Avatar Studio Quick Start
-```bash
-npm run dev
-# Open http://localhost:3500/avatar
-# 1. Start Webcam
-# 2. Click "Start Generation"
-# 3. Adjust prompt/VACE and click "Apply Updates" to update the live stream
-# 4. If the connection drops, the UI retries up to 3 times
+# Open http://localhost:3500 (redirects to Soundscape)
+# 1. Click "Connect to Scope" (requires RunPod pod running)
+# 2. Hit Play to start the demo track (loops infinitely)
+# 3. Watch audio-reactive visuals generate in real-time
 ```
 
 ### Specification
@@ -214,9 +204,8 @@ Tests use Vitest with jsdom (`vitest.config.ts`) and live in `tests/`.
 
 ## Architecture
 - MVP architecture defined in `docs/architecture.md`
-- **Current**: Landing page with links to dedicated Soundscape (`/soundscape`) and Avatar (`/avatar`) pages
-- **Fallback**: Native Scope UI for troubleshooting
-- **API Client**: `src/lib/scope/` - typed Scope API client (for future integration)
+- **Current**: Root (`/`) redirects to Soundscape (`/soundscape`) — single-module MVP
+- **API Client**: `src/lib/scope/` - typed Scope API client with WebRTC integration
 
 ## Environment Variables
 See `.env.example` for the full list and comments.
@@ -261,11 +250,12 @@ Complete platform documentation extracted from official sources:
 - `CHANGELOG.md` - Project milestones
 
 ## Key Decisions
-1. **UI Approach**: Dedicated pages — Home landing (`/`), Soundscape (`/soundscape`), Avatar (`/avatar`); native Scope UI fallback (Dec 30)
-2. **Deployment**: RunPod with RTX Pro 6000 (96GB VRAM) - upgraded from RTX 5090 (Dec 27)
-3. **Stack**: Next.js 16 + Tailwind 4 (matches MetaDJ Nexus)
-4. **Pipeline**: `longlive` + VACE for identity consistency (Dec 26)
-5. **Future**: Masking/segmentation and background environments
+1. **MVP Focus**: Soundscape-only with demo track infinite loop (Jan 7)
+2. **UI Approach**: Root redirects to Soundscape; Avatar Studio disabled for MVP (Jan 7)
+3. **Deployment**: RunPod with RTX Pro 6000 (96GB VRAM)
+4. **Stack**: Next.js 16 + Tailwind 4 (matches MetaDJ Nexus)
+5. **Pipeline**: `longlive` for stylized, smooth visual transitions
+6. **Future**: Avatar Studio, audio upload/mic input, masking/segmentation
 
 ## Resources
 

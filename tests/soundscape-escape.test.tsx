@@ -4,60 +4,52 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createRoot } from "react-dom/client";
 import SoundscapePage from "../src/app/soundscape/page";
 
-const pushMock = vi.fn();
-
-vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: pushMock }),
-}));
-
-vi.mock("next/link", () => ({
-  default: ({
-    href,
-    children,
-    ...props
-  }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
-    <a href={href} {...props}>
-      {children}
-    </a>
-  ),
-}));
-
 vi.mock("@/components/soundscape", () => ({
   SoundscapeStudio: () => <div data-testid="soundscape-stub" />,
 }));
 
+let container: HTMLDivElement | null = null;
+let root: ReturnType<typeof createRoot> | null = null;
+
 function renderSoundscape() {
-  const container = document.createElement("div");
+  container = document.createElement("div");
   document.body.appendChild(container);
-  const root = createRoot(container);
+  root = createRoot(container);
 
   act(() => {
-    root.render(<SoundscapePage />);
+    root!.render(<SoundscapePage />);
   });
 
   return {
     container,
     unmount: () => {
-      act(() => root.unmount());
-      container.remove();
+      act(() => root!.unmount());
+      container!.remove();
     },
   };
 }
 
 afterEach(() => {
-  pushMock.mockClear();
-  document.body.innerHTML = "";
+  if (root) {
+    act(() => root!.unmount());
+  }
+  if (container) {
+    container.remove();
+  }
+  container = null;
+  root = null;
 });
 
-describe("Soundscape escape shortcut", () => {
-  it("returns to home on Escape", () => {
-    const { unmount } = renderSoundscape();
+describe("Soundscape page", () => {
+  it("renders the soundscape studio", () => {
+    const { container, unmount } = renderSoundscape();
 
-    act(() => {
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" }));
-    });
+    const studio = container.querySelector('[data-testid="soundscape-stub"]');
+    expect(studio).toBeTruthy();
 
-    expect(pushMock).toHaveBeenCalledWith("/");
+    // Verify branding is present
+    const heading = container.querySelector("h1");
+    expect(heading?.textContent).toContain("MetaDJ Scope");
 
     unmount();
   });

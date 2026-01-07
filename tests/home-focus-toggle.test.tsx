@@ -1,73 +1,21 @@
-import React from "react";
-import { act } from "react";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { createRoot } from "react-dom/client";
-import Home from "../src/app/page";
+import { describe, expect, it, vi } from "vitest";
 
-vi.mock("next/dynamic", () => ({
-  default: () => {
-    return function DynamicStub() {
-      return <div data-testid="dynamic-studio" />;
-    };
+// Mock Next.js redirect
+const mockRedirect = vi.fn();
+vi.mock("next/navigation", () => ({
+  redirect: (url: string) => {
+    mockRedirect(url);
+    // redirect() throws in Next.js to halt execution
+    throw new Error("NEXT_REDIRECT");
   },
 }));
 
-vi.mock("next/link", () => ({
-  default: ({
-    href,
-    children,
-    ...props
-  }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { href: string }) => (
-    <a href={href} {...props}>
-      {children}
-    </a>
-  ),
-}));
+describe("Home page redirect", () => {
+  it("redirects to /soundscape (MVP behavior)", async () => {
+    // Import after mocking
+    const { default: Home } = await import("../src/app/page");
 
-function renderHome() {
-  const container = document.createElement("div");
-  document.body.appendChild(container);
-  const root = createRoot(container);
-
-  act(() => {
-    root.render(<Home />);
-  });
-
-  return {
-    container,
-    unmount: () => {
-      act(() => root.unmount());
-      container.remove();
-    },
-  };
-}
-
-afterEach(() => {
-  document.body.innerHTML = "";
-});
-
-describe("Home focus toggle", () => {
-  it("switches focus mode from Soundscape to Avatar Studio", () => {
-    const { container, unmount } = renderHome();
-
-    const focusHeading = container.querySelector('[data-testid="focus-heading"]');
-    expect(focusHeading?.textContent).toContain("Soundscape");
-
-    const buttons = Array.from(container.querySelectorAll("button"));
-    const avatarButton = buttons.find((button) => button.textContent?.includes("Avatar Studio"));
-    const soundscapeButton = buttons.find((button) => button.textContent?.includes("Soundscape"));
-
-    expect(soundscapeButton?.getAttribute("aria-pressed")).toBe("true");
-    expect(avatarButton?.getAttribute("aria-pressed")).toBe("false");
-
-    act(() => {
-      avatarButton?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
-    });
-
-    expect(avatarButton?.getAttribute("aria-pressed")).toBe("true");
-    expect(soundscapeButton?.getAttribute("aria-pressed")).toBe("false");
-    expect(focusHeading?.textContent).toContain("Avatar Studio");
-
-    unmount();
+    expect(() => Home()).toThrow("NEXT_REDIRECT");
+    expect(mockRedirect).toHaveBeenCalledWith("/soundscape");
   });
 });

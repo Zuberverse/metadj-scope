@@ -252,9 +252,20 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
               <h1 className="font-display text-2xl text-white mb-3 tracking-wide chisel-gradient">
                 Soundscape
               </h1>
-              <p className="text-white/50 mb-8 text-sm leading-relaxed">
+              <p className="text-white/50 mb-6 text-sm leading-relaxed">
                 Generate real-time AI visuals from your audio with Daydream Scope
               </p>
+
+              {/* Aspect Ratio Selection - must be set before connecting */}
+              <div className="mb-6">
+                <p className="text-[10px] text-white/30 uppercase tracking-widest mb-3">Output Format</p>
+                <AspectRatioToggle
+                  current={aspectRatio}
+                  onChange={setAspectRatio}
+                  disabled={false}
+                />
+              </div>
+
               <button
                 type="button"
                 onClick={() => handleConnectScope()}
@@ -302,15 +313,10 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
                   ? "glass bg-scope-cyan/20 text-scope-cyan border-scope-cyan/40"
                   : "glass bg-white/5 text-white/50 border-white/10 hover:border-scope-cyan/30"
               }`}
-              title="Toggle post-processing sharpening"
+              title="Toggle visual enhancement (contrast + saturation)"
             >
-              {sharpenEnabled ? "Sharp" : "Raw"}
+              {sharpenEnabled ? "Enhance" : "Raw"}
             </button>
-            <AspectRatioToggle
-              current={aspectRatio}
-              onChange={setAspectRatio}
-              disabled={!!scopeStream}
-            />
             <button
               type="button"
               onClick={() => handleDisconnectScope(true)}
