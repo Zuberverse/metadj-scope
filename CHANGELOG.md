@@ -1,6 +1,6 @@
 # Changelog
 
-**Last Modified**: 2026-01-04 18:20 EST
+**Last Modified**: 2026-01-07 01:45 EST
 
 All notable changes to this project will be documented in this file.
 
@@ -10,10 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **App Router not-found page** with branded 404 fallback (`src/app/not-found.tsx`)
 - **Skip link** for keyboard accessibility in layout (`src/app/layout.tsx`)
 - **Mobile navigation** with hamburger menu on homepage (`src/app/page.tsx`)
 - **Error dismiss buttons** on Soundscape and Avatar Studio error alerts with `role="alert"`
 - **API proxy path validation** - Allowlist restricts Scope API proxy to known endpoints (security)
+- **App Router error boundaries** for route and global failures (`src/app/error.tsx`, `src/app/global-error.tsx`)
+- **CI workflow** running lint, type-check, and tests (`.github/workflows/ci.yml`)
+- **useScopeConnection reconnection test** validating auto-retry behavior (`tests/use-scope-connection.test.tsx`)
 - **`useScopeConnection` hook** - Shared connection lifecycle management (`src/lib/scope/use-scope-connection.ts`)
   - Typed error handling with `ScopeError` type and error codes
   - Connection state machine (disconnected → connecting → connected/failed → reconnecting)
@@ -50,22 +54,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - ThemeSelector with preset theme grid
   - Demo track: "Metaversal Odyssey" bundled in `/public/audio/`
 - Soundscape page route at `/soundscape`
-- Soundscape mapping engine unit tests (denoising steps, noise scale, beat cache reset)
+- Soundscape mapping engine unit tests (denoising steps, noise scale, beat noise boost)
 - **Intensity descriptors** - Dynamic prompt modifiers based on audio energy levels (low/medium/high/peak)
-- **Beat modifiers** - Additional prompt text on beat detection ("rhythmic pulse", "beat-synchronized flash", "percussive impact")
-- **Smooth prompt transitions** - All prompt changes (not just theme switches) now use 3-frame slerp transitions via Scope's transition API
+- **Smooth prompt transitions** - Theme and energy prompt changes use slerp transitions for visual continuity
 - ESLint flat config for Next.js linting
 - Cursor IDE rules (`.cursor/rules/cursor-rules.mdc`)
 - Request timeouts to Scope API client (10s health, 30s default, 60s pipeline load)
 - ARIA labels and accessibility attributes to UI components
 - `aria-pressed` state for toggle buttons in PromptEditor
+- `aria-pressed` state for Soundscape audio mode toggles
 - `aria-live` regions for dynamic content updates
 - Escape key handler on Soundscape page to return to home
 - Soundscape escape shortcut regression test
+- Reduced motion support for animation-heavy UI
+- Skip link targets for Soundscape and Avatar Studio pages
 
 ### Changed
+- Soundscape + Avatar Studio now share `useScopeConnection` for connection lifecycle and reconnection (Avatar Studio gates reconnects on webcam availability)
 - Avatar Studio promoted to active MVP alongside Soundscape
 - WebRTC session setup now uses a shared helper to reduce duplication across Soundscape and Avatar Studio
+- Scope proxy now requires a token in production when enabled
+- Soundscape reconnection flow now guards against overlapping connection attempts and resets retries on success
 - Avatar Studio pipeline load now toggles `vace_enabled` and always sends `paused: false`
 - Avatar Studio start button now requires webcam to be active
 - Soundscape UI parameter updates throttled to avoid unnecessary re-renders
@@ -114,6 +123,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **React Compiler compliance** - ReferenceImage.tsx now uses render-time prop sync instead of effect-based setState
 - **Missing callback dependencies** - Added `debug`, `log` to handleAnalysis; added `stopAmbient` to handleConnectScope
 - **Test typing issues** - Fixed globalThis augmentation and Next.js Image mock in test files
+- `useScopeConnection` now clears reconnect timers and connections on unmount
+- Scope WebRTC helper now closes peer connection and data channel on handshake failures
+- Soundscape reconnection now triggers on data channel close and stream-stopped events
+- Soundscape reconnect timer clears before rescheduling to avoid duplicate retries
+- `useScopeConnection` now triggers reconnect attempts on a timer instead of stalling
+- Scope API proxy allowlist includes pipeline schema endpoint (`/api/v1/pipelines`)
 - Soundscape disconnect now clears the data channel and stops ambient mode
 - Avatar Studio data channel closure now stops the stream and cleans up connection state
 - Audio mode now properly connects parameter sender to data channel when audio is connected after Scope (was causing audio to not drive visuals)

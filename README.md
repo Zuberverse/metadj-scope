@@ -1,6 +1,6 @@
 # MetaDJ Scope
 
-**Last Modified**: 2026-01-03 23:27 EST
+**Last Modified**: 2026-01-07 01:03 EST
 
 Hackathon exploration project for the Daydream Scope Track (Interactive AI Video Program). Building real-time AI video generation across **Soundscape** and **Avatar Studio**, with dedicated pages for each experience.
 
@@ -13,7 +13,7 @@ Hackathon exploration project for the Daydream Scope Track (Interactive AI Video
 ## Key Features (Status)
 - **Soundscape** (active): Audio-reactive visuals driven by real-time music analysis.
 - **Avatar Studio** (active): Webcam-driven MetaDJ avatar generation with VACE identity lock.
-- **Storyteller** (future): Narrative visual mode for spoken or scripted prompts (renamed from Storytelling).
+- **Storyteller** (future): Narrative visual mode for spoken or scripted prompts.
 
 ## Technology Stack
 - Next.js 16 + TypeScript + Tailwind 4 (Soundscape + Avatar Studio UIs active)
@@ -76,7 +76,7 @@ Soundscape transforms music into AI-generated visuals in real-time. Audio featur
 
 ### Preset Themes
 - **Cosmic Voyage** - Neon digital space with energy-responsive noise
-- **Neon Foundry** - Industrial AI interior with beat-triggered cache resets
+- **Neon Foundry** - Industrial AI interior with beat-driven noise pulses
 - **Digital Forest** - Bioluminescent nature/tech hybrid
 - **Synthwave Highway** - Retro-futuristic driving visuals
 - **Crystal Sanctuary** - Meditative crystalline environments

@@ -26,7 +26,10 @@ export default function AvatarPage() {
   const [isConnected, setIsConnected] = useState(false);
 
   return (
-    <main className="min-h-screen p-6 md:p-12 relative overflow-hidden custom-scrollbar bg-scope-bg">
+    <main
+      id="main-content"
+      className="min-h-screen p-6 md:p-12 relative overflow-hidden custom-scrollbar bg-scope-bg"
+    >
       {/* Background Decor - Extreme Immersion */}
       <div className="glow-bg bg-scope-purple/15 top-[-30%] right-[-20%] scale-[2] -rotate-45" />
       <div className="glow-bg bg-scope-magenta/10 bottom-[-20%] left-[-10%] scale-[1.8] rotate-12" />

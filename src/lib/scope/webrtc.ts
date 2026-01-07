@@ -38,85 +38,101 @@ export async function createScopeWebRtcSession(
   const pc = new RTCPeerConnection({ iceServers: iceConfig.iceServers });
   const pendingCandidates: IceCandidatePayload[] = [];
   let sessionId: string | null = null;
+  let dataChannel: RTCDataChannel | undefined;
 
-  pc.onicecandidate = async (event) => {
-    if (!event.candidate) return;
+  try {
+    pc.onicecandidate = async (event) => {
+      if (!event.candidate) return;
 
-    const payload: IceCandidatePayload = {
-      candidate: event.candidate.candidate,
-      sdpMid: event.candidate.sdpMid,
-      sdpMLineIndex: event.candidate.sdpMLineIndex,
+      const payload: IceCandidatePayload = {
+        candidate: event.candidate.candidate,
+        sdpMid: event.candidate.sdpMid,
+        sdpMLineIndex: event.candidate.sdpMLineIndex,
+      };
+
+      if (sessionId) {
+        await scopeClient.addIceCandidates(sessionId, [payload]);
+      } else {
+        pendingCandidates.push(payload);
+      }
     };
 
-    if (sessionId) {
-      await scopeClient.addIceCandidates(sessionId, [payload]);
-    } else {
-      pendingCandidates.push(payload);
-    }
-  };
-
-  if (onTrack) {
-    pc.ontrack = onTrack;
-  }
-
-  if (onConnectionStateChange) {
-    pc.onconnectionstatechange = () => onConnectionStateChange(pc);
-  }
-
-  setupPeerConnection?.(pc);
-
-  let dataChannel: RTCDataChannel | undefined;
-  if (options.dataChannel !== null) {
-    const {
-      label = "parameters",
-      options: channelOptions = { ordered: true },
-      onOpen,
-      onClose,
-      onMessage,
-    } = options.dataChannel ?? {};
-
-    dataChannel = pc.createDataChannel(label, channelOptions);
-    // Capture reference for callbacks - channel is guaranteed defined at this point
-    const channel = dataChannel;
-
-    if (onOpen) {
-      channel.onopen = () => onOpen(channel);
+    if (onTrack) {
+      pc.ontrack = onTrack;
     }
 
-    if (onClose) {
-      channel.onclose = () => onClose(channel);
+    if (onConnectionStateChange) {
+      pc.onconnectionstatechange = () => onConnectionStateChange(pc);
     }
 
-    if (onMessage) {
-      channel.onmessage = (event) => onMessage(event, channel);
+    setupPeerConnection?.(pc);
+
+    if (options.dataChannel !== null) {
+      const {
+        label = "parameters",
+        options: channelOptions = { ordered: true },
+        onOpen,
+        onClose,
+        onMessage,
+      } = options.dataChannel ?? {};
+
+      dataChannel = pc.createDataChannel(label, channelOptions);
+      // Capture reference for callbacks - channel is guaranteed defined at this point
+      const channel = dataChannel;
+
+      if (onOpen) {
+        channel.onopen = () => onOpen(channel);
+      }
+
+      if (onClose) {
+        channel.onclose = () => onClose(channel);
+      }
+
+      if (onMessage) {
+        channel.onmessage = (event) => onMessage(event, channel);
+      }
     }
+
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+
+    const localDesc = pc.localDescription;
+    if (!localDesc?.sdp) {
+      throw new Error("Failed to create local description");
+    }
+
+    const answer = await scopeClient.createWebRtcOffer({
+      sdp: localDesc.sdp,
+      type: localDesc.type,
+      initialParameters,
+    });
+
+    if (!answer) {
+      throw new Error("Failed to get answer from Scope");
+    }
+
+    await pc.setRemoteDescription({ sdp: answer.sdp, type: answer.type });
+    sessionId = answer.sessionId;
+
+    if (pendingCandidates.length > 0) {
+      await scopeClient.addIceCandidates(sessionId, pendingCandidates);
+      pendingCandidates.length = 0;
+    }
+
+    return { pc, dataChannel, sessionId };
+  } catch (error) {
+    pc.onicecandidate = null;
+    pc.ontrack = null;
+    pc.onconnectionstatechange = null;
+
+    if (dataChannel && dataChannel.readyState !== "closed") {
+      dataChannel.onopen = null;
+      dataChannel.onclose = null;
+      dataChannel.onmessage = null;
+      dataChannel.close();
+    }
+
+    pc.close();
+    throw error;
   }
-
-  const offer = await pc.createOffer();
-  await pc.setLocalDescription(offer);
-
-  const localDesc = pc.localDescription;
-  if (!localDesc?.sdp) {
-    throw new Error("Failed to create local description");
-  }
-
-  const answer = await scopeClient.createWebRtcOffer({
-    sdp: localDesc.sdp,
-    type: localDesc.type,
-    initialParameters,
-  });
-
-  if (!answer) {
-    throw new Error("Failed to get answer from Scope");
-  }
-
-  await pc.setRemoteDescription({ sdp: answer.sdp, type: answer.type });
-  sessionId = answer.sessionId;
-
-  if (pendingCandidates.length > 0) {
-    await scopeClient.addIceCandidates(sessionId, pendingCandidates);
-    pendingCandidates.length = 0;
-  }
-
-  return { pc, dataChannel, sessionId };
 }

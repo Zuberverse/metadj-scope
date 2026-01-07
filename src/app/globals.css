@@ -197,6 +197,21 @@ h3,
   animation: ripple 2s infinite;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-float,
+  .glow-bg,
+  .energy-ripple {
+    animation: none !important;
+  }
+}
+
 /* Animation delays */
 .animation-delay-2000 {
   animation-delay: 2s;

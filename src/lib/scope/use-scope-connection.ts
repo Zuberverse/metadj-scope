@@ -5,7 +5,7 @@
 
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ScopeClient } from "./client";
 import type { PipelineLoadParams } from "./types";
 import { createScopeWebRtcSession, type ScopeDataChannelConfig } from "./webrtc";
@@ -68,10 +68,18 @@ export interface UseScopeConnectionOptions {
   onDataChannelClose?: () => void;
   /** Callback when data channel receives a message */
   onDataChannelMessage?: (event: MessageEvent) => void;
+  /** Callback when connection is cleaned up */
+  onDisconnect?: (reason?: string) => void;
   /** Custom peer connection setup */
   setupPeerConnection?: (pc: RTCPeerConnection) => void;
   /** Initial WebRTC parameters */
   initialParameters?: Record<string, unknown>;
+  /** Attempt reconnection when data channel closes */
+  reconnectOnDataChannelClose?: boolean;
+  /** Attempt reconnection when stream stops */
+  reconnectOnStreamStopped?: boolean;
+  /** Optionally gate reconnection attempts */
+  shouldReconnect?: (reason: string) => boolean;
 }
 
 export interface UseScopeConnectionReturn {
@@ -114,8 +122,12 @@ export function useScopeConnection(
     onDataChannelOpen,
     onDataChannelClose,
     onDataChannelMessage,
+    onDisconnect,
     setupPeerConnection,
     initialParameters,
+    reconnectOnDataChannelClose = false,
+    reconnectOnStreamStopped = false,
+    shouldReconnect,
   } = options;
 
   // State
@@ -128,6 +140,10 @@ export function useScopeConnection(
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const dataChannelRef = useRef<RTCDataChannel | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const connectRef = useRef<() => Promise<void>>(async () => {});
+  const isConnectingRef = useRef(false);
+  const isManualDisconnectRef = useRef(false);
+  const isRecoveringRef = useRef(false);
 
   // Clear reconnect timer
   const clearReconnectTimer = useCallback(() => {
@@ -161,24 +177,50 @@ export function useScopeConnection(
   // Disconnect
   const disconnect = useCallback(
     (preserveError = false) => {
+      isManualDisconnectRef.current = true;
+      isRecoveringRef.current = false;
       cleanup();
+      onDisconnect?.("manual disconnect");
+      setReconnectAttempts(0);
+      isConnectingRef.current = false;
       setConnectionState("disconnected");
       setStatusMessage("");
       if (!preserveError) {
         setError(null);
       }
     },
-    [cleanup]
+    [cleanup, onDisconnect]
   );
 
   // Handle connection lost - attempt reconnection
   const handleConnectionLost = useCallback(
     (reason: string) => {
+      if (isManualDisconnectRef.current) {
+        isManualDisconnectRef.current = false;
+        return;
+      }
+      if (isRecoveringRef.current) {
+        return;
+      }
+      if (shouldReconnect && !shouldReconnect(reason)) {
+        cleanup();
+        onDisconnect?.(reason);
+        setError(createScopeError("CONNECTION_LOST", reason, true));
+        setStatusMessage("Connection stopped");
+        setConnectionState("failed");
+        return;
+      }
+
+      isRecoveringRef.current = true;
+      cleanup();
+      onDisconnect?.(reason);
       setReconnectAttempts((prev) => {
         const next = prev + 1;
         if (next > maxReconnectAttempts) {
           setError(createScopeError("CONNECTION_LOST", `${reason}. Max retries exceeded.`, true));
           setConnectionState("failed");
+          setStatusMessage("Connection failed");
+          isRecoveringRef.current = false;
           return prev;
         }
 
@@ -188,18 +230,24 @@ export function useScopeConnection(
 
         clearReconnectTimer();
         reconnectTimeoutRef.current = setTimeout(() => {
-          // Trigger reconnect by calling connect again
-          // The connect function will be called from the component
+          void connectRef.current?.();
         }, delay);
 
         return next;
       });
     },
-    [maxReconnectAttempts, reconnectBaseDelay, clearReconnectTimer]
+    [cleanup, maxReconnectAttempts, reconnectBaseDelay, clearReconnectTimer, shouldReconnect, onDisconnect]
   );
 
   // Connect to Scope
   const connect = useCallback(async () => {
+    if (isConnectingRef.current) {
+      return;
+    }
+    isManualDisconnectRef.current = false;
+    isRecoveringRef.current = false;
+    isConnectingRef.current = true;
+    clearReconnectTimer();
     setConnectionState("connecting");
     setError(null);
 
@@ -254,16 +302,24 @@ export function useScopeConnection(
           onClose: () => {
             dataChannelRef.current = null;
             onDataChannelClose?.();
+            if (reconnectOnDataChannelClose) {
+              handleConnectionLost("Data channel closed");
+            }
           },
           onMessage: (event) => {
             // Handle stream_stopped messages
             try {
               const message = JSON.parse(event.data);
               if (message?.type === "stream_stopped") {
+                const streamMessage = message.error_message || "Stream stopped";
                 setError(
-                  createScopeError("STREAM_STOPPED", message.error_message || "Stream stopped")
+                  createScopeError("STREAM_STOPPED", streamMessage)
                 );
-                disconnect(true);
+                if (reconnectOnStreamStopped) {
+                  handleConnectionLost(streamMessage);
+                } else {
+                  disconnect(true);
+                }
                 return;
               }
             } catch {
@@ -289,7 +345,11 @@ export function useScopeConnection(
             );
       setError(scopeError);
       setConnectionState("failed");
+      setStatusMessage("Connection failed");
       cleanup();
+      onDisconnect?.(scopeError.message);
+    } finally {
+      isConnectingRef.current = false;
     }
   }, [
     scopeClient,
@@ -301,10 +361,25 @@ export function useScopeConnection(
     onDataChannelOpen,
     onDataChannelClose,
     onDataChannelMessage,
+    onDisconnect,
     handleConnectionLost,
     disconnect,
     cleanup,
+    clearReconnectTimer,
+    reconnectOnDataChannelClose,
+    reconnectOnStreamStopped,
   ]);
+
+  useEffect(() => {
+    connectRef.current = connect;
+  }, [connect]);
+
+  useEffect(() => {
+    return () => {
+      cleanup();
+      isConnectingRef.current = false;
+    };
+  }, [cleanup]);
 
   // Clear error
   const clearError = useCallback(() => {

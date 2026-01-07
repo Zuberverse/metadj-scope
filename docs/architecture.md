@@ -1,6 +1,6 @@
 # Architecture - MetaDJ Scope
 
-**Last Modified**: 2026-01-04 18:20 EST
+**Last Modified**: 2026-01-07 01:45 EST
 **Status**: Active
 
 ## Purpose
@@ -107,12 +107,12 @@ Full-screen immersive experience optimized for video viewing:
 - `src/lib/scope/client.ts` - Scope API + WebRTC integration
 - `src/lib/scope/webrtc.ts` - Shared WebRTC session helper
 - `src/lib/scope/pipeline.ts` - Shared health + pipeline readiness helper
-- `src/lib/scope/use-scope-connection.ts` - Shared connection lifecycle hook (see below)
+- `src/lib/scope/use-scope-connection.ts` - Shared connection lifecycle hook used by Soundscape and Avatar Studio for reconnection and cleanup
 - `src/components/soundscape/*` - UI controls and visualization
 
 ### Shared Connection Hook
 
-The `useScopeConnection` hook provides unified connection lifecycle management:
+The `useScopeConnection` hook provides unified connection lifecycle management and is used by both Soundscape and Avatar Studio. Soundscape layers audio state on top of the hook, while Avatar Studio gates reconnects on webcam availability and injects the webcam track during setup.
 
 ```typescript
 import { useScopeConnection, getScopeClient } from "@/lib/scope";
@@ -216,7 +216,7 @@ const {
 
 ## Avatar Studio (Active)
 
-Avatar Studio runs in video-to-video mode: it sends a webcam video track to Scope and receives the transformed output in the same WebRTC session. VACE is enabled when a Scope server asset path is provided. See:
+Avatar Studio runs in video-to-video mode: it sends a webcam video track to Scope and receives the transformed output in the same WebRTC session. VACE is enabled when a Scope server asset path is provided. Connection lifecycle and reconnection are handled through `useScopeConnection` with webcam gating. See:
 - `docs/features/avatar-mvp-spec.md`
 - `docs/scope-technical.md`
 

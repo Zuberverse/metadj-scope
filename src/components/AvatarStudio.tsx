@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
-import { getScopeClient, createScopeWebRtcSession, prepareScopePipeline } from "@/lib/scope";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { getScopeClient, useScopeConnection } from "@/lib/scope";
 import { DEFAULT_AVATAR_CONFIG, DEFAULT_GENERATION_PARAMS } from "@/lib/scope/types";
 import { WebcamPreview } from "./WebcamPreview";
 import { ReferenceImage } from "./ReferenceImage";
@@ -18,23 +18,15 @@ interface AvatarStudioProps {
 
 export function AvatarStudio({ onConnectionChange }: AvatarStudioProps) {
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isConnecting, setIsConnecting] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<string>("");
   const [prompt, setPrompt] = useState(DEFAULT_AVATAR_CONFIG.promptTemplate);
   const [vaceScale, setVaceScale] = useState(DEFAULT_AVATAR_CONFIG.vaceScale);
-  const [isStreaming, setIsStreaming] = useState(false);
   const [referenceImage, setReferenceImage] = useState<string>("/metadj-avatar-reference.png");
   const [webcamStream, setWebcamStream] = useState<MediaStream | null>(null);
-  const [, setReconnectAttempts] = useState(0);
   const [outputStream, setOutputStream] = useState<MediaStream | null>(null);
   const outputStreamRef = useRef<MediaStream | null>(null);
   const webcamStreamRef = useRef<MediaStream | null>(null);
-  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
-  const dataChannelRef = useRef<RTCDataChannel | null>(null);
-  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const userInitiatedRef = useRef(false);
-  const startStreamRef = useRef<((options?: { isReconnect?: boolean }) => void) | null>(null);
 
   // Check API connection on mount
   useEffect(() => {
@@ -46,15 +38,15 @@ export function AvatarStudio({ onConnectionChange }: AvatarStudioProps) {
         const health = await client.checkHealth();
         const connected = health.status === "ok";
         if (!connected) {
-          setError("Could not connect to Scope API. Check if RunPod instance is running.");
+          setLocalError("Could not connect to Scope API. Check if RunPod instance is running.");
           setConnectionStatus("Scope API unavailable");
         } else {
-          setError(null);
+          setLocalError(null);
           setConnectionStatus("Scope API ready");
         }
       } catch (err) {
         console.error("[AvatarStudio] Connection check failed:", err);
-        setError("Failed to connect to Scope API");
+        setLocalError("Failed to connect to Scope API");
         setConnectionStatus("Scope API unavailable");
       } finally {
         setIsLoading(false);
@@ -63,47 +55,126 @@ export function AvatarStudio({ onConnectionChange }: AvatarStudioProps) {
     checkConnection();
   }, []);
 
-  const clearReconnectTimer = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
+  const hasServerAsset = useMemo(
+    () => referenceImage.startsWith("/assets/") || referenceImage.startsWith("assets/"),
+    [referenceImage]
+  );
+
+  const loadParams = useMemo(
+    () => ({
+      width: DEFAULT_GENERATION_PARAMS.width,
+      height: DEFAULT_GENERATION_PARAMS.height,
+      vace_enabled: hasServerAsset,
+    }),
+    [hasServerAsset]
+  );
+
+  const baseParameters = useMemo(() => {
+    const parameters: Record<string, unknown> = {
+      input_mode: "video",
+      prompts: [{ text: prompt, weight: 1.0 }],
+      denoising_step_list: [1000, 750, 500, 250],
+      manage_cache: true,
+      paused: false,
+    };
+
+    if (hasServerAsset) {
+      parameters.vace_ref_images = [referenceImage];
+      parameters.vace_context_scale = vaceScale;
     }
+
+    return parameters;
+  }, [prompt, referenceImage, vaceScale, hasServerAsset]);
+
+  const setupPeerConnection = useCallback((connection: RTCPeerConnection) => {
+    const inputStream = webcamStreamRef.current;
+    if (!inputStream) {
+      throw new Error("Start the webcam before starting the stream.");
+    }
+
+    const videoTracks = inputStream.getVideoTracks();
+    if (videoTracks.length === 0) {
+      throw new Error("No webcam video track available.");
+    }
+
+    videoTracks.forEach((track) => {
+      connection.addTrack(track, inputStream);
+    });
   }, []);
 
-  const resetReconnect = useCallback(() => {
-    clearReconnectTimer();
-    setReconnectAttempts(0);
-  }, [clearReconnectTimer]);
-
-  const cleanupConnection = useCallback(() => {
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.onicecandidate = null;
-      peerConnectionRef.current.ontrack = null;
-      peerConnectionRef.current.onconnectionstatechange = null;
-      peerConnectionRef.current.close();
-      peerConnectionRef.current = null;
+  const shouldReconnect = useCallback((_reason: string) => {
+    void _reason;
+    if (!webcamStreamRef.current) {
+      setLocalError("Webcam inactive. Start the webcam to reconnect.");
+      setConnectionStatus("Webcam required");
+      return false;
     }
-
-    if (outputStreamRef.current) {
-      outputStreamRef.current.getTracks().forEach((track) => track.stop());
-      outputStreamRef.current = null;
-    }
-
-    dataChannelRef.current = null;
-    setOutputStream(null);
-    setIsConnecting(false);
+    return true;
   }, []);
+
+  const {
+    connectionState,
+    statusMessage,
+    error: scopeError,
+    dataChannel,
+    disconnect,
+    retry,
+    clearError,
+  } = useScopeConnection({
+    scopeClient: getScopeClient(),
+    pipelineId: DEFAULT_PIPELINE,
+    loadParams,
+    initialParameters: baseParameters,
+    maxReconnectAttempts: MAX_RECONNECT_ATTEMPTS,
+    reconnectBaseDelay: RECONNECT_BASE_DELAY_MS,
+    setupPeerConnection,
+    onStream: (stream) => {
+      outputStreamRef.current = stream;
+      setOutputStream(stream);
+    },
+    onDataChannelOpen: () => {
+      setConnectionStatus("Connected - Parameters ready");
+    },
+    onDataChannelClose: () => {
+      setConnectionStatus("Parameters unavailable");
+    },
+    reconnectOnDataChannelClose: true,
+    reconnectOnStreamStopped: true,
+    shouldReconnect,
+  });
+
+  const isConnecting = connectionState === "connecting" || connectionState === "reconnecting";
+  const isStreaming = connectionState === "connected";
+  const errorMessage = localError ?? scopeError?.message ?? null;
+
+  useEffect(() => {
+    if (statusMessage) {
+      setConnectionStatus(statusMessage);
+    }
+  }, [statusMessage]);
+
+  useEffect(() => {
+    onConnectionChange(isStreaming);
+  }, [isStreaming, onConnectionChange]);
+
+  useEffect(() => {
+    if (connectionState !== "connected") {
+      if (outputStreamRef.current) {
+        outputStreamRef.current.getTracks().forEach((track) => track.stop());
+        outputStreamRef.current = null;
+      }
+      setOutputStream(null);
+    }
+  }, [connectionState]);
 
   useEffect(() => {
     return () => {
-      clearReconnectTimer();
-      cleanupConnection();
+      if (outputStreamRef.current) {
+        outputStreamRef.current.getTracks().forEach((track) => track.stop());
+        outputStreamRef.current = null;
+      }
     };
-  }, [cleanupConnection, clearReconnectTimer]);
-
-  useEffect(() => {
-    onConnectionChange(!!outputStream);
-  }, [outputStream, onConnectionChange]);
+  }, []);
 
   const handleWebcamReady = useCallback((stream: MediaStream) => {
     webcamStreamRef.current = stream;
@@ -113,237 +184,77 @@ export function AvatarStudio({ onConnectionChange }: AvatarStudioProps) {
   const handleWebcamStop = useCallback(() => {
     webcamStreamRef.current = null;
     setWebcamStream(null);
-  }, []);
-
-  const buildInitialParameters = useCallback(() => {
-    const parameters: Record<string, unknown> = {
-      input_mode: "video",
-      prompts: [{ text: prompt, weight: 1.0 }],
-      denoising_step_list: [1000, 750, 500, 250],
-      manage_cache: true,
-      paused: false,
-    };
-
-    const hasServerAsset =
-      referenceImage.startsWith("/assets/") || referenceImage.startsWith("assets/");
-
-    if (hasServerAsset) {
-      parameters.vace_ref_images = [referenceImage];
-      parameters.vace_context_scale = vaceScale;
+    if (connectionState !== "disconnected") {
+      disconnect();
+      setConnectionStatus("Webcam stopped");
     }
+  }, [connectionState, disconnect]);
 
-    return parameters;
-  }, [prompt, referenceImage, vaceScale]);
+  const handleClearErrors = useCallback(() => {
+    setLocalError(null);
+    clearError();
+  }, [clearError]);
 
-  const sendParameters = useCallback((options?: { resetCache?: boolean }) => {
-    const channel = dataChannelRef.current;
-    if (!channel || channel.readyState !== "open") {
-      setError("Parameter channel not ready. Start the stream first.");
-      setConnectionStatus("Parameters unavailable");
-      return false;
-    }
+  const sendParameters = useCallback(
+    (options?: { resetCache?: boolean }) => {
+      if (!dataChannel || dataChannel.readyState !== "open") {
+        setLocalError("Parameter channel not ready. Start the stream first.");
+        setConnectionStatus("Parameters unavailable");
+        return false;
+      }
 
-    const payload = buildInitialParameters();
-    if (options?.resetCache) {
-      payload.reset_cache = true;
-    }
+      const payload: Record<string, unknown> = { ...baseParameters };
+      if (options?.resetCache) {
+        payload.reset_cache = true;
+      }
 
-    try {
-      channel.send(JSON.stringify(payload));
-      setError(null);
-      setConnectionStatus("Parameters updated");
-      return true;
-    } catch (sendError) {
-      console.error("[AvatarStudio] Failed to send parameters:", sendError);
-      setError("Failed to send parameters to Scope");
-      setConnectionStatus("Parameter update failed");
-      return false;
-    }
-  }, [buildInitialParameters]);
+      try {
+        dataChannel.send(JSON.stringify(payload));
+        setLocalError(null);
+        setConnectionStatus("Parameters updated");
+        return true;
+      } catch (sendError) {
+        console.error("[AvatarStudio] Failed to send parameters:", sendError);
+        setLocalError("Failed to send parameters to Scope");
+        setConnectionStatus("Parameter update failed");
+        return false;
+      }
+    },
+    [baseParameters, dataChannel]
+  );
 
   const handleApplyChanges = useCallback(() => {
     sendParameters({ resetCache: true });
   }, [sendParameters]);
 
-  const scheduleReconnect = useCallback(
-    (reason: string) => {
-      if (reconnectTimeoutRef.current) {
-        return;
-      }
-
-      if (!webcamStreamRef.current) {
-        setError("Webcam inactive. Start the webcam to reconnect.");
-        setConnectionStatus("Webcam required");
-        return;
-      }
-
-      setReconnectAttempts((prev) => {
-        const next = prev + 1;
-        if (next > MAX_RECONNECT_ATTEMPTS) {
-          setError(`Connection lost (${reason}). Restart the stream.`);
-          setConnectionStatus("Reconnection failed");
-          return prev;
-        }
-
-        const delay = RECONNECT_BASE_DELAY_MS * next;
-        const delaySeconds = Math.round(delay / 1000);
-        setConnectionStatus(`Reconnecting (${next}/${MAX_RECONNECT_ATTEMPTS}) in ${delaySeconds}s...`);
-
-        clearReconnectTimer();
-        reconnectTimeoutRef.current = setTimeout(() => {
-          startStreamRef.current?.({ isReconnect: true });
-        }, delay);
-
-        return next;
-      });
-    },
-    [clearReconnectTimer]
-  );
-
-  const handleConnectionLost = useCallback(
-    (reason: string) => {
-      if (userInitiatedRef.current) {
-        userInitiatedRef.current = false;
-        return;
-      }
-
-      setError(reason);
-      setIsStreaming(false);
-      cleanupConnection();
-      scheduleReconnect(reason);
-    },
-    [cleanupConnection, scheduleReconnect]
-  );
-
-  const startStream = useCallback(
-    async (options?: { isReconnect?: boolean }) => {
-      if (!options?.isReconnect && (isConnecting || isStreaming)) return;
-
-      const inputStream = webcamStreamRef.current;
-      if (!inputStream) {
-        setError("Start the webcam before starting the stream.");
-        setConnectionStatus("Webcam required");
-        return;
-      }
-
-      const videoTracks = inputStream.getVideoTracks();
-      if (videoTracks.length === 0) {
-        setError("No webcam video track available.");
-        setConnectionStatus("Webcam required");
-        return;
-      }
-
-      userInitiatedRef.current = false;
-
-      setIsConnecting(true);
-      setIsStreaming(true);
-      setError(null);
-      setConnectionStatus(options?.isReconnect ? "Reconnecting..." : "Checking server health...");
-
-      try {
-        const client = getScopeClient();
-
-        const hasServerAsset =
-          referenceImage.startsWith("/assets/") || referenceImage.startsWith("assets/");
-
-        await prepareScopePipeline({
-          scopeClient: client,
-          pipelineId: DEFAULT_PIPELINE,
-          loadParams: {
-            width: DEFAULT_GENERATION_PARAMS.width,
-            height: DEFAULT_GENERATION_PARAMS.height,
-            vace_enabled: hasServerAsset,
-          },
-          onStatus: setConnectionStatus,
-        });
-
-        setConnectionStatus("Creating WebRTC connection...");
-        const { pc, dataChannel } = await createScopeWebRtcSession({
-          scopeClient: client,
-          initialParameters: buildInitialParameters(),
-          setupPeerConnection: (connection) => {
-            peerConnectionRef.current = connection;
-            videoTracks.forEach((track) => {
-              connection.addTrack(track, inputStream);
-            });
-          },
-          onTrack: (event) => {
-            if (event.streams && event.streams[0]) {
-              outputStreamRef.current = event.streams[0];
-              setOutputStream(event.streams[0]);
-              setConnectionStatus("Connected - Receiving video");
-            }
-          },
-          onConnectionStateChange: (connection) => {
-            if (connection.connectionState === "failed" || connection.connectionState === "disconnected") {
-              handleConnectionLost("WebRTC connection lost");
-            }
-          },
-          dataChannel: {
-            label: "parameters",
-            options: { ordered: true },
-            onOpen: () => {
-              setConnectionStatus("Connected - Parameters ready");
-            },
-            onClose: () => {
-              handleConnectionLost("Data channel closed");
-            },
-            onMessage: (event) => {
-              try {
-                const message = JSON.parse(event.data);
-                if (message.type === "stream_stopped") {
-                  handleConnectionLost(message.error_message || "Scope stream stopped");
-                }
-              } catch (parseError) {
-                console.warn("[AvatarStudio] Unhandled data channel message:", parseError);
-              }
-            },
-          },
-        });
-
-        peerConnectionRef.current = pc;
-        dataChannelRef.current = dataChannel ?? null;
-        setConnectionStatus("Connected");
-        resetReconnect();
-      } catch (err) {
-        console.error("[AvatarStudio] Stream start failed:", err);
-        setError(err instanceof Error ? err.message : "Failed to start stream");
-        setIsStreaming(false);
-        cleanupConnection();
-        scheduleReconnect(err instanceof Error ? err.message : "Connection failed");
-        setConnectionStatus("Connection failed");
-      } finally {
-        setIsConnecting(false);
-      }
-    },
-    [
-      buildInitialParameters,
-      cleanupConnection,
-      handleConnectionLost,
-      isConnecting,
-      isStreaming,
-      referenceImage,
-      resetReconnect,
-      scheduleReconnect,
-    ]
-  );
-
   const handleStartStream = useCallback(() => {
-    resetReconnect();
-    startStream({ isReconnect: false });
-  }, [resetReconnect, startStream]);
+    if (isConnecting || isStreaming) {
+      return;
+    }
 
-  useEffect(() => {
-    startStreamRef.current = startStream;
-  }, [startStream]);
+    const inputStream = webcamStreamRef.current;
+    if (!inputStream) {
+      setLocalError("Start the webcam before starting the stream.");
+      setConnectionStatus("Webcam required");
+      return;
+    }
+
+    const videoTracks = inputStream.getVideoTracks();
+    if (videoTracks.length === 0) {
+      setLocalError("No webcam video track available.");
+      setConnectionStatus("Webcam required");
+      return;
+    }
+
+    handleClearErrors();
+    retry();
+  }, [handleClearErrors, isConnecting, isStreaming, retry]);
 
   const handleStopStream = useCallback(() => {
-    userInitiatedRef.current = true;
-    resetReconnect();
-    setIsStreaming(false);
-    cleanupConnection();
+    disconnect();
     setConnectionStatus("Disconnected");
-  }, [cleanupConnection, resetReconnect]);
+    handleClearErrors();
+  }, [disconnect, handleClearErrors]);
 
   if (isLoading) {
     return (
@@ -444,11 +355,11 @@ export function AvatarStudio({ onConnectionChange }: AvatarStudioProps) {
             {/* Inner Depth Glow */}
             <div className="absolute inset-0 z-10 pointer-events-none shadow-[inset_0_0_120px_rgba(0,0,0,0.9)]" />
 
-            {error && (
+            {errorMessage && (
               <div className="absolute top-4 inset-x-4 z-30 p-4 glass-radiant bg-red-950/40 border-red-500/30 rounded-2xl animate-bounce-subtle" role="alert">
                 <button
                   type="button"
-                  onClick={() => setError(null)}
+                  onClick={handleClearErrors}
                   className="absolute top-2 right-2 p-1 text-red-300/60 hover:text-red-300 transition-colors"
                   aria-label="Dismiss error"
                 >
@@ -456,7 +367,7 @@ export function AvatarStudio({ onConnectionChange }: AvatarStudioProps) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
-                <p className="text-red-200 text-[10px] font-black uppercase tracking-[0.2em] pr-6">{error}</p>
+                <p className="text-red-200 text-[10px] font-black uppercase tracking-[0.2em] pr-6">{errorMessage}</p>
               </div>
             )}
 

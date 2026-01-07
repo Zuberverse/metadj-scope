@@ -5,11 +5,10 @@
 
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import { useSoundscape, DEFAULT_ASPECT_RATIO } from "@/lib/soundscape";
 import type { AspectRatioConfig } from "@/lib/soundscape";
-import { getScopeClient } from "@/lib/scope/client";
-import { createScopeWebRtcSession, prepareScopePipeline } from "@/lib/scope";
+import { getScopeClient, useScopeConnection } from "@/lib/scope";
 import { AudioPlayer } from "./AudioPlayer";
 import { ThemeSelector } from "./ThemeSelector";
 import { AnalysisMeter } from "./AnalysisMeter";
@@ -28,15 +27,8 @@ interface SoundscapeStudioProps {
 
 export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) {
   // Scope connection state
-  const [isConnecting, setIsConnecting] = useState(false);
   const [scopeStream, setScopeStream] = useState<MediaStream | null>(null);
-  const [scopeError, setScopeError] = useState<string | null>(null);
-  const [connectionStatus, setConnectionStatus] = useState<string>("");
-  const [reconnectAttempts, setReconnectAttempts] = useState(0);
-  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const dataChannelRef = useRef<RTCDataChannel | null>(null);
-  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
 
   // UI state
   const [showControls, setShowControls] = useState(true);
@@ -118,175 +110,99 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
     onConnectionChange?.(!!scopeStream);
   }, [scopeStream, onConnectionChange]);
 
-  // Cleanup WebRTC on unmount
-  useEffect(() => {
-    return () => {
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-      if (dataChannelRef.current) {
-        dataChannelRef.current.close();
-      }
-      if (peerConnectionRef.current) {
-        peerConnectionRef.current.close();
-      }
+  const loadParams = useMemo(() => {
+    const params: Record<string, unknown> = {
+      width: aspectRatio.resolution.width,
+      height: aspectRatio.resolution.height,
     };
-  }, []);
+    if (DEFAULT_PIPELINE === "longlive") {
+      params.vace_enabled = false;
+    }
+    return params;
+  }, [aspectRatio]);
+
+  const initialParameters = useMemo(() => {
+    if (!currentTheme) return undefined;
+    // 4-step schedule aligned with Scope examples (~15-20 fps on RTX 6000)
+    const DENOISING_STEPS = [1000, 750, 500, 250];
+    return {
+      prompts: [{ text: currentTheme.basePrompt, weight: 1.0 }],
+      noise_scale: currentTheme.ranges.noiseScale.min,
+      denoising_step_list: DENOISING_STEPS,
+      manage_cache: true,
+      paused: false,
+    };
+  }, [currentTheme]);
+
+  const handleScopeDisconnect = useCallback(() => {
+    setScopeStream(null);
+    setDataChannel(null);
+    stopAmbient();
+  }, [setDataChannel, stopAmbient]);
+
+  const {
+    connectionState,
+    statusMessage,
+    error,
+    reconnectAttempts,
+    peerConnection,
+    connect,
+    disconnect,
+    retry,
+    clearError,
+  } = useScopeConnection({
+    scopeClient: getScopeClient(),
+    pipelineId: DEFAULT_PIPELINE,
+    loadParams,
+    initialParameters,
+    maxReconnectAttempts: MAX_RECONNECT_ATTEMPTS,
+    reconnectBaseDelay: RECONNECT_DELAY_MS,
+    setupPeerConnection: (connection) => {
+      connection.addTransceiver("video");
+    },
+    onStream: (stream) => {
+      setScopeStream(stream);
+    },
+    onDataChannelOpen: (channel) => {
+      setDataChannel(channel);
+      if (!isPlaying) {
+        startAmbient();
+      }
+    },
+    onDataChannelClose: () => {
+      setDataChannel(null);
+      stopAmbient();
+    },
+    onDisconnect: handleScopeDisconnect,
+    reconnectOnDataChannelClose: true,
+    reconnectOnStreamStopped: true,
+  });
+
+  const isConnecting = connectionState === "connecting" || connectionState === "reconnecting";
+  const scopeError = error?.message ?? null;
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === "development" && peerConnection) {
+      (window as unknown as { debugPeerConnection: RTCPeerConnection }).debugPeerConnection = peerConnection;
+    }
+  }, [peerConnection]);
 
   // Disconnect from Scope
   const handleDisconnectScope = useCallback((userInitiated = false) => {
     stopAmbient();
     setDataChannel(null);
-
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
-
-    if (dataChannelRef.current) {
-      dataChannelRef.current.close();
-      dataChannelRef.current = null;
-    }
-
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close();
-      peerConnectionRef.current = null;
-    }
-
     setScopeStream(null);
-    setConnectionStatus("");
-
+    disconnect(true);
     if (userInitiated) {
-      setReconnectAttempts(0);
-      setScopeError(null);
+      clearError();
     }
-
     console.log("[Soundscape] Disconnected from Scope", userInitiated ? "(user)" : "(connection lost)");
-  }, [setDataChannel, stopAmbient]);
+  }, [clearError, disconnect, setDataChannel, stopAmbient]);
 
-  // Connect to Scope with full WebRTC flow
-  const handleConnectScope = useCallback(async () => {
-    setIsConnecting(true);
-    setScopeError(null);
-    setConnectionStatus("Initializing...");
-
-    const scopeClient = getScopeClient();
-    console.log("[Soundscape] Connecting to Scope at:", scopeClient.getBaseUrl());
-
-    try {
-      // Step 1: Health check
-      setConnectionStatus("Checking server...");
-      const health = await scopeClient.checkHealth();
-      if (health.status !== "ok") {
-        throw new Error("Scope server is not healthy. Is the pod running?");
-      }
-
-      // Only pass vace_enabled for longlive (other pipelines may not accept it)
-      const loadParams: Record<string, unknown> = {
-        width: aspectRatio.resolution.width,
-        height: aspectRatio.resolution.height,
-      };
-      if (DEFAULT_PIPELINE === "longlive") {
-        loadParams.vace_enabled = false;
-      }
-      await prepareScopePipeline({
-        scopeClient,
-        pipelineId: DEFAULT_PIPELINE,
-        loadParams,
-        onStatus: setConnectionStatus,
-      });
-
-      setConnectionStatus("Creating connection...");
-      // 4-step schedule aligned with Scope examples (~15-20 fps on RTX 6000)
-      const DENOISING_STEPS = [1000, 750, 500, 250];
-      const initialParams = currentTheme
-        ? {
-          prompts: [{ text: currentTheme.basePrompt, weight: 1.0 }],
-          noise_scale: currentTheme.ranges.noiseScale.min,
-          denoising_step_list: DENOISING_STEPS,
-          manage_cache: true,
-          paused: false,
-        }
-        : undefined;
-
-      const { pc, dataChannel } = await createScopeWebRtcSession({
-        scopeClient,
-        initialParameters: initialParams,
-        setupPeerConnection: (connection) => {
-          peerConnectionRef.current = connection;
-          connection.addTransceiver("video");
-        },
-        onTrack: (event) => {
-          if (event.track.kind === "video" && event.streams[0]) {
-            setScopeStream(event.streams[0]);
-            setConnectionStatus("Connected");
-          }
-        },
-        onConnectionStateChange: (connection) => {
-          if (connection.connectionState === "failed" || connection.connectionState === "disconnected") {
-            setScopeError("Connection lost");
-            handleDisconnectScope(false);
-            setReconnectAttempts((prev) => {
-              const newAttempts = prev + 1;
-              if (newAttempts <= MAX_RECONNECT_ATTEMPTS) {
-                setConnectionStatus(`Reconnecting (${newAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
-                reconnectTimeoutRef.current = setTimeout(() => {
-                  handleConnectScope();
-                }, RECONNECT_DELAY_MS * newAttempts);
-              } else {
-                setScopeError("Connection failed. Click Retry.");
-              }
-              return newAttempts;
-            });
-          }
-        },
-        dataChannel: {
-          label: "parameters",
-          options: { ordered: true },
-          onOpen: (channel) => {
-            dataChannelRef.current = channel;
-            setDataChannel(channel);
-            if (!isPlaying) {
-              startAmbient();
-            }
-          },
-          onMessage: (event) => {
-            try {
-              const message = JSON.parse(event.data);
-              if (message?.type === "stream_stopped") {
-                setScopeError(message.error_message || "Stream stopped");
-                handleDisconnectScope(false);
-              }
-            } catch {
-              // ignore parse errors
-            }
-          },
-          onClose: () => {
-            dataChannelRef.current = null;
-            setDataChannel(null);
-            stopAmbient();
-          },
-        },
-      });
-
-      peerConnectionRef.current = pc;
-      dataChannelRef.current = dataChannel ?? null;
-      setConnectionStatus("Connected");
-      setReconnectAttempts(0);
-      setScopeError(null);
-
-      if (process.env.NODE_ENV === "development") {
-        (window as unknown as { debugPeerConnection: RTCPeerConnection }).debugPeerConnection = pc;
-      }
-
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Connection failed";
-      setScopeError(message);
-      handleDisconnectScope();
-    } finally {
-      setIsConnecting(false);
-    }
-  }, [aspectRatio, currentTheme, setDataChannel, handleDisconnectScope, isPlaying, startAmbient, stopAmbient]);
+  const handleConnectScope = useCallback(() => {
+    clearError();
+    connect();
+  }, [clearError, connect]);
 
   return (
     <div className="h-full flex flex-col">
@@ -319,7 +235,7 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
                 Initializing
               </h2>
               <p className="text-scope-cyan/80 text-sm font-medium mb-4">
-                {connectionStatus || "Connecting..."}
+                {statusMessage || "Connecting..."}
               </p>
               <div className="w-48 h-1.5 glass bg-white/5 rounded-full mx-auto overflow-hidden">
                 <div className="h-full bg-gradient-to-r from-scope-purple via-scope-cyan to-scope-magenta animate-pulse rounded-full w-2/3" />
@@ -341,7 +257,7 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
               </p>
               <button
                 type="button"
-                onClick={handleConnectScope}
+                onClick={() => handleConnectScope()}
                 className="px-10 py-4 glass bg-scope-cyan/20 hover:bg-scope-cyan/30 text-scope-cyan border border-scope-cyan/40 rounded-2xl font-display text-sm uppercase tracking-[0.15em] transition-all duration-500 hover:scale-105 hover:shadow-[0_0_30px_rgba(6,182,212,0.3)]"
               >
                 Connect to Scope
@@ -351,7 +267,7 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
                   {/* Dismiss button */}
                   <button
                     type="button"
-                    onClick={() => setScopeError(null)}
+                    onClick={clearError}
                     className="absolute top-2 right-2 p-1 text-red-400/60 hover:text-red-400 transition-colors"
                     aria-label="Dismiss error"
                   >
@@ -363,11 +279,7 @@ export function SoundscapeStudio({ onConnectionChange }: SoundscapeStudioProps) 
                   {reconnectAttempts >= MAX_RECONNECT_ATTEMPTS && (
                     <button
                       type="button"
-                      onClick={() => {
-                        setReconnectAttempts(0);
-                        setScopeError(null);
-                        handleConnectScope();
-                      }}
+                      onClick={retry}
                       className="text-sm text-scope-cyan hover:underline font-medium"
                     >
                       Retry Connection

@@ -90,7 +90,7 @@ export default function SoundscapePage() {
       </header>
 
       {/* Main Content - Full height video experience */}
-      <main className="relative z-10 flex-1 min-h-0">
+      <main id="main-content" className="relative z-10 flex-1 min-h-0">
         <SoundscapeStudio onConnectionChange={setIsConnected} />
       </main>
 

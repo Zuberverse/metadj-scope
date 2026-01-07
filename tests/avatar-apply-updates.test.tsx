@@ -18,6 +18,18 @@ vi.mock("@/lib/scope", () => ({
   getScopeClient: () => ({
     checkHealth: async () => ({ status: "ok" }),
   }),
+  useScopeConnection: () => ({
+    connectionState: "disconnected",
+    statusMessage: "",
+    error: null,
+    reconnectAttempts: 0,
+    peerConnection: null,
+    dataChannel: null,
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    clearError: vi.fn(),
+    retry: vi.fn(),
+  }),
 }));
 
 function renderAvatarStudio() {

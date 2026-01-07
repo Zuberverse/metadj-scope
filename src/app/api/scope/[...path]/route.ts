@@ -20,6 +20,7 @@ const PROXY_TOKEN = process.env.SCOPE_PROXY_TOKEN;
 const PATH_ALLOWLIST = [
   "health",           // Health check (root-level)
   "api/v1/pipeline",  // Pipeline management
+  "api/v1/pipelines", // Pipeline schemas
   "api/v1/webrtc",    // WebRTC signaling
   "api/v1/prompts",   // Prompt operations
   "api/v1/session",   // Session management
@@ -64,6 +65,13 @@ async function proxyRequest(
   if (!PROXY_ENABLED) {
     return NextResponse.json(
       { error: "Scope proxy disabled in production" },
+      { status: 403 }
+    );
+  }
+
+  if (process.env.NODE_ENV === "production" && !PROXY_TOKEN) {
+    return NextResponse.json(
+      { error: "Scope proxy token required in production" },
       { status: 403 }
     );
   }

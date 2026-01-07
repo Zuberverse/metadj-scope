@@ -337,6 +337,8 @@ export function AudioPlayer({
               key={m}
               type="button"
               onClick={() => handleModeChange(m)}
+              aria-pressed={mode === m}
+              aria-label={`Audio mode: ${m}`}
               disabled={disabled}
               className={`
                 px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all duration-300 border
@@ -410,6 +412,7 @@ export function AudioPlayer({
               key={m}
               type="button"
               onClick={() => handleModeChange(m)}
+              aria-pressed={isSelected}
               disabled={disabled}
               className={`
                 flex-1 px-4 py-3 rounded-2xl text-[10px] font-black uppercase tracking-[0.3em] transition-all duration-500
