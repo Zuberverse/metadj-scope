@@ -4,7 +4,7 @@
 
 **Platform Notice**: This `AGENTS.md` is optimized for OpenAI Codex via the Codex CLI. Claude Code sessions follow the accompanying `CLAUDE.md`, and Cursor IDE uses `.cursor/rules/` guidance when present; each platform gets the same standards.
 
-**Last Modified**: 2026-01-03 23:27 EST
+**Last Modified**: 2026-01-08 09:50 EST
 *Parent: /3-projects/5-software/AGENTS.md*
 
 ## User Context
@@ -18,9 +18,10 @@
 
 ## Project Context
 - Hackathon project for the Daydream Scope Track (interactive AI video).
-- Goal: identify a focused Scope-based demo and implement an MVP for the program timeline.
-- Current approach: custom Next.js UI is active for Soundscape + Avatar Studio; native Scope UI remains a fallback for troubleshooting.
-- Stack active: Next.js 16 + TypeScript + Tailwind 4 (Soundscape + Avatar Studio UIs live).
+- **MVP Focus**: Soundscape-only with demo track infinite loop.
+- **Current**: Root (`/`) redirects to Soundscape; Avatar Studio disabled for MVP.
+- Stack active: Next.js 16 + TypeScript + Tailwind 4.
+- Future modules: Avatar Studio, audio upload/mic input modes.
 
 ## Visual System Alignment
 - Follow `1-system/1-context/1-knowledge/9-visual-assets/visual-identity-context-standards.md` for UI work.
@@ -75,18 +76,20 @@
 
 **Startup Sequence**:
 ```bash
-# 1. Start local dev server (soundscape MVP)
+# 1. Start local dev server
 cd 3-projects/5-software/metadj-scope
 npm run dev  # Runs on http://localhost:3500
 
-# 2. Access soundscape
-open http://localhost:3500/soundscape
+# 2. Open app (redirects to Soundscape)
+open http://localhost:3500
 ```
 
 **URLs**:
-- Local Soundscape: http://localhost:3500/soundscape
+- Local App: http://localhost:3500 (redirects to /soundscape)
 - Scope API (RunPod): https://8tn9fypag1wnxz-8000.proxy.runpod.net
 - RunPod Console: https://console.runpod.io/pods?id=8tn9fypag1wnxz
+
+**MVP Audio**: Demo track (Metaversal Odyssey) loops infinitely. Upload/mic modes disabled for MVP.
 
 ## Coordination Patterns
 - Discovery and scoping: product + software, with documentation-generator support.

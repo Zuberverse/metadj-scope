@@ -4,7 +4,7 @@
 
 **Platform Notice**: This `CLAUDE.md` is optimized for Claude Code sessions. OpenAI Codex (via the Codex CLI) follows the accompanying `AGENTS.md`, and Cursor IDE uses `.cursor/rules/` guidance when present; each platform gets the same standards.
 
-**Last Modified**: 2026-01-07 EST
+**Last Modified**: 2026-01-08 09:50 EST
 *Parent: /3-projects/5-software/CLAUDE.md*
 
 ## User Context
