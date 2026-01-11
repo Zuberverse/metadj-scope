@@ -1,10 +1,14 @@
 # Research - MetaDJ Scope
 
-**Last Modified**: 2025-12-28 09:35 EST
+**Last Modified**: 2026-01-10 15:37 EST
 **Status**: Active Collection
 
 ## Purpose
-Collect research findings, API discoveries, and technical notes during hackathon exploration. General Scope capabilities live in `docs/scope-technical.md`.
+Collect research findings, API discoveries, and technical notes during hackathon exploration. Canonical platform docs live in the external references hub.
+
+**Canonical External References**:
+- `1-system/3-docs/external/ai/daydream/daydream-scope.md` — Scope platform reference
+- `1-system/3-docs/external/ai/daydream/streamdiffusion.md` — StreamDiffusion reference
 
 ---
 
@@ -43,7 +47,7 @@ See `docs/nexus-daydream-reference.md` for:
 
 ## Scope Platform Research
 
-See `docs/scope-technical.md` for a general capability overview. This section captures findings and validation notes.
+See `1-system/3-docs/external/ai/daydream/daydream-scope.md` for a general capability overview. This section captures findings and validation notes.
 
 ### API Endpoints (Validated Dec 28)
 *Source: official Scope server docs (`docs/server.md`).*
@@ -373,12 +377,12 @@ All 5 pipeline models have been downloaded on the `metadj-scope` RunPod instance
 - [ ] FAQ document
 - [x] MetaDJ Nexus Daydream docs (internal reference)
 
-**Comprehensive documentation now available in:**
-- `docs/scope-platform-reference.md` - Complete Scope platform documentation
-- `docs/api-reference.md` - Full Scope API endpoint reference
-- `docs/workflows-reference.md` - WebRTC, VACE, LoRA, Spout workflows
-- `docs/runpod-reference.md` - Complete RunPod platform reference (Pods, GPUs, storage, networking, pricing, SDK, CLI)
-- `docs/touchdesigner-reference.md` - TouchDesigner operators, Spout integration, AI/ML workflows
+**Canonical documentation** lives in `1-system/3-docs/external/ai/daydream/` and official Scope docs. Project deltas live here:
+- `docs/scope-platform-reference.md` - Project delta notes
+- `docs/api-reference.md` - Project delta API usage
+- `docs/workflows-reference.md` - Project delta workflow notes
+- `docs/runpod-reference.md` - Project delta deployment notes
+- `docs/touchdesigner-reference.md` - Project delta integration notes
 - `docs/future-integration-strategy.md` - Post-hackathon strategy (custom apps, architecture layers, cost analysis)
 
 ---

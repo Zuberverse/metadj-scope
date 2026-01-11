@@ -1,11 +1,19 @@
 # Future Integration Strategy
 
-**Last Modified**: 2025-12-28 10:54 EST
+**Last Modified**: 2026-01-10 15:37 EST
 **Status**: Strategic Reference (Post-Hackathon Consideration)
 
 ## Purpose
 
 Captures strategic insights about Scope's architecture, integration possibilities, and future opportunities for MetaDJ. This document preserves detailed findings from platform research for post-hackathon planning.
+
+---
+
+## Canonical External References
+
+- `1-system/3-docs/external/ai/daydream/daydream-scope.md` — Scope platform reference
+- `1-system/3-docs/external/ai/daydream/streamdiffusion.md` — StreamDiffusion reference
+- https://docs.daydream.live/scope — Official Scope docs
 
 ---
 
@@ -459,8 +467,9 @@ RunPod (Linux)                Windows Machine
 
 ## Related Documentation
 
-- `touchdesigner-reference.md` - TouchDesigner operators and Spout integration
-- `api-reference.md` - Complete Scope API documentation with code examples
-- `workflows-reference.md` - WebRTC, VACE, LoRA, Spout workflows
-- `runpod-reference.md` - RunPod platform reference
-- `scope-platform-reference.md` - Scope platform overview
+- `1-system/3-docs/external/ai/daydream/` — Canonical Daydream external docs hub
+- `touchdesigner-reference.md` — Project delta notes for TouchDesigner integration
+- `api-reference.md` — Project delta notes for Scope API usage
+- `workflows-reference.md` — Project delta workflow notes (WebRTC/VACE)
+- `runpod-reference.md` — Project delta RunPod notes
+- `scope-platform-reference.md` — Project delta Scope platform notes

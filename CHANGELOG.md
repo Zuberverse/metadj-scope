@@ -1,6 +1,6 @@
 # Changelog
 
-**Last Modified**: 2026-01-07 01:45 EST
+**Last Modified**: 2026-01-10 15:37 EST
 
 All notable changes to this project will be documented in this file.
 
@@ -184,7 +184,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - VRAM requirements: ~20GB (longlive), 32GB (krea-realtime-video)
 
 ### Documentation
-- `docs/scope-technical.md` - Complete pipeline reference
+- `docs/scope-technical.md` - Project-specific pipeline assumptions (canonical docs in external hub)
 - `docs/architecture.md` - Pipeline selection guidance and configuration
 - `docs/strategy.md` - Pipeline decision rationale (Decision 5)
 - `docs/research.md` - Validated VACE compatibility findings

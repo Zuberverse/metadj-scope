@@ -1,8 +1,14 @@
 # API Notes
 
-**Last Modified**: 2025-12-30 17:45 EST
+**Last Modified**: 2026-01-10 15:37 EST
 
-Central index for Scope API integration notes.
+Central index for Scope API integration notes. Canonical API docs live in the external references hub and official Scope docs.
+
+## Canonical External References
+
+- `1-system/3-docs/external/ai/daydream/daydream-scope.md` — External reference hub
+- https://github.com/daydreamlive/scope/tree/main/docs/api — Official API docs
+- https://docs.daydream.live/scope — Official Scope docs
 
 ## Official API Documentation
 
@@ -26,8 +32,8 @@ Central index for Scope API integration notes.
 
 | Document | Description |
 |----------|-------------|
-| `../api-reference.md` | Comprehensive API reference (local copy) |
-| `../workflows-reference.md` | WebRTC, VACE, LoRA, Spout workflows |
-| `../scope-platform-reference.md` | Platform overview and architecture |
+| `../api-reference.md` | Project-specific API deltas (endpoints we use) |
+| `../workflows-reference.md` | Project workflow deltas (WebRTC, VACE notes) |
+| `../scope-platform-reference.md` | Project platform delta (Scope overview notes) |
 | `../scope-technical.md` | Project-specific technical decisions |
 | `../research.md` | Research findings and validation notes |
