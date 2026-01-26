@@ -138,7 +138,7 @@ See `docs/architecture.md` for detailed troubleshooting guide.
 
 **Key Trade-off**: `longlive` produces stylized output but locks MetaDJ identity via VACE. `krea-realtime-video` is photorealistic but has no identity consistency.
 
-See `1-system/3-docs/external/ai/daydream/streamdiffusion.md` for canonical pipeline details. `docs/scope-technical.md` captures MetaDJ Scope-specific assumptions.
+See `1-system/3-docs/external-tools/ai/daydream/streamdiffusion.md` for canonical pipeline details. `docs/scope-technical.md` captures MetaDJ Scope-specific assumptions.
 
 ## Installation
 
@@ -223,7 +223,7 @@ See `.env.example` for the full list and comments.
 ## Documentation
 
 ### Platform Documentation (External Hub + Project Deltas)
-Canonical platform documentation lives in `1-system/3-docs/external/ai/daydream/` and official sources. The files below capture MetaDJ Scope-specific deltas only.
+Canonical platform documentation lives in `1-system/3-docs/external-tools/ai/daydream/` and official sources. The files below capture MetaDJ Scope-specific deltas only.
 - `docs/scope-platform-reference.md` - **Scope platform delta** (project-specific notes)
 - `docs/api-reference.md` - **Scope API delta** (endpoints we actually use)
 - `docs/workflows-reference.md` - **Scope workflow delta** (WebRTC/VACE usage notes)
@@ -260,7 +260,7 @@ Canonical platform documentation lives in `1-system/3-docs/external/ai/daydream/
 ## Resources
 
 ### External
-- `1-system/3-docs/external/ai/daydream/` — Canonical Daydream docs hub
+- `1-system/3-docs/external-tools/ai/daydream/` — Canonical Daydream docs hub
 - [Scope GitHub](https://github.com/daydreamlive/scope/)
 - [Scope Docs](https://docs.daydream.live/scope/introduction)
 - [VACE API Docs](https://github.com/daydreamlive/scope/blob/main/docs/api/vace.md)

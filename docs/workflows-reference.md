@@ -9,7 +9,7 @@ Project-specific workflow notes for MetaDJ Scope. Canonical workflow documentati
 
 ## Canonical External References
 
-- `1-system/3-docs/external/ai/daydream/daydream-scope.md` — External reference hub
+- `1-system/3-docs/external-tools/ai/daydream/daydream-scope.md` — External reference hub
 - https://github.com/daydreamlive/scope/tree/main/docs/api — Official workflow docs
 - https://docs.daydream.live/scope — Official Scope docs
 

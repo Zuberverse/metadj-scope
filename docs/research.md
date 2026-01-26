@@ -7,8 +7,8 @@
 Collect research findings, API discoveries, and technical notes during hackathon exploration. Canonical platform docs live in the external references hub.
 
 **Canonical External References**:
-- `1-system/3-docs/external/ai/daydream/daydream-scope.md` — Scope platform reference
-- `1-system/3-docs/external/ai/daydream/streamdiffusion.md` — StreamDiffusion reference
+- `1-system/3-docs/external-tools/ai/daydream/daydream-scope.md` — Scope platform reference
+- `1-system/3-docs/external-tools/ai/daydream/streamdiffusion.md` — StreamDiffusion reference
 
 ---
 
@@ -47,7 +47,7 @@ See `docs/nexus-daydream-reference.md` for:
 
 ## Scope Platform Research
 
-See `1-system/3-docs/external/ai/daydream/daydream-scope.md` for a general capability overview. This section captures findings and validation notes.
+See `1-system/3-docs/external-tools/ai/daydream/daydream-scope.md` for a general capability overview. This section captures findings and validation notes.
 
 ### API Endpoints (Validated Dec 28)
 *Source: official Scope server docs (`docs/server.md`).*
@@ -377,7 +377,7 @@ All 5 pipeline models have been downloaded on the `metadj-scope` RunPod instance
 - [ ] FAQ document
 - [x] MetaDJ Nexus Daydream docs (internal reference)
 
-**Canonical documentation** lives in `1-system/3-docs/external/ai/daydream/` and official Scope docs. Project deltas live here:
+**Canonical documentation** lives in `1-system/3-docs/external-tools/ai/daydream/` and official Scope docs. Project deltas live here:
 - `docs/scope-platform-reference.md` - Project delta notes
 - `docs/api-reference.md` - Project delta API usage
 - `docs/workflows-reference.md` - Project delta workflow notes

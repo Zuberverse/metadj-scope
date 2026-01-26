@@ -9,7 +9,7 @@ Project-specific deltas and decisions for Daydream Scope in MetaDJ Scope. Canoni
 
 ## Canonical External References
 
-- `1-system/3-docs/external/ai/daydream/daydream-scope.md` — External reference hub
+- `1-system/3-docs/external-tools/ai/daydream/daydream-scope.md` — External reference hub
 - https://docs.daydream.live/scope — Official Daydream Scope docs
 - https://github.com/daydreamlive/scope — Source repository
 

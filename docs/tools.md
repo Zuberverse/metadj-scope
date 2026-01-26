@@ -7,8 +7,8 @@
 Track tools, services, and integrations for the Daydream Scope hackathon project.
 
 **Canonical External References**:
-- `1-system/3-docs/external/ai/daydream/daydream-scope.md` — Daydream Scope reference
-- `1-system/3-docs/external/ai/daydream/daydream-api.md` — Daydream API reference
+- `1-system/3-docs/external-tools/ai/daydream/daydream-scope.md` — Daydream Scope reference
+- `1-system/3-docs/external-tools/ai/daydream/daydream-api.md` — Daydream API reference
 - https://docs.runpod.io — RunPod platform docs
 
 ## Core Platform

@@ -9,7 +9,7 @@ Project-specific TouchDesigner notes for MetaDJ Scope. Canonical TouchDesigner d
 
 ## Canonical External References
 
-- `1-system/3-docs/external/creative/touchdesigner/` — TouchDesigner external reference hub
+- `1-system/3-docs/external-tools/creative/touchdesigner/` — TouchDesigner external reference hub
 - https://docs.derivative.ca — Official TouchDesigner docs
 - https://derivative.ca/download — Downloads and licensing
 
